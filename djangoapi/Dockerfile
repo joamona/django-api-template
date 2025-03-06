@@ -5,6 +5,7 @@ FROM python:3.12-alpine
 #    reading the value from the USER_ID arg variable.
 # This arg variable is set in the djangoapi->build->args section 
 #    of the docker-compose.yml file
+#    The username is set in the .env.dev file
 ARG USER_ID
 ARG GROUP_ID
 ARG USERNAME
@@ -14,6 +15,8 @@ RUN addgroup -g $GROUP_ID $USERNAME && \
     adduser -D -u $USER_ID -G $USERNAME $USERNAME
 
 # set work directory
+# WORKDIR /usr/src/app
+
 WORKDIR /home/$USERNAME
 
 # set environment variables

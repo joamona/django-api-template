@@ -14,8 +14,8 @@ from pathlib import Path
 import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-
+EPSG_FOR_GEOMETRIES=int(os.getenv('EPSG_FOR_GEOMETRIES',4326))
+ST_SNAP_PRECISION=float(os.getenv('ST_SNAP_PRECISION',0.0001))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -24,6 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY','DKLSJGHFHF654165464kasdjhadkgf')
 
 # SECURITY WARNING: don't run with debug turned on in production!
+REMOTE_DEBUG = False
 DEBUG = os.getenv("DEBUG", 'False').lower() in ('true', '1', 't')
 
 ALLOWED_HOSTS = [os.getenv('DJANGO_ALLOWED_HOSTS')]
@@ -38,10 +39,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    #required by geodjango
+    'django.contrib.gis',
     #para el CORS
     'corsheaders',
+    'rest_framework',
+    'rest_framework_gis',
+    'django_filters',
+    'drf_yasg',
     #add all your django apps here
-    'apphelloworld'
+    'apphelloworld',
+    'core',
+    'codelist',
+    'buildings',
 ]
 
 MIDDLEWARE = [
@@ -63,7 +73,7 @@ ROOT_URLCONF = 'djangoapi.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['core'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -84,7 +94,9 @@ WSGI_APPLICATION = 'djangoapi.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        #ENGINE': 'django.db.backends.postgresql_psycopg2',
+        #required by geodjango
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': os.getenv('POSTGRES_DB'),
         'USER': os.getenv('POSTGRES_USER'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
@@ -137,3 +149,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+#On logout, redirect to the login page
+LOGOUT_REDIRECT_URL = "/accounts/login/"
