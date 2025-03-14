@@ -5,9 +5,17 @@ from rest_framework import serializers
 
 from djangoapi.settings import EPSG_FOR_GEOMETRIES, ST_SNAP_PRECISION
 
-
 class GeoModelSerializer(serializers.ModelSerializer):
-    check_geometry_is_valid = True #if true ºit will check if the geometry is valid: not self-intersecting and closed
+    """
+    This class is a serializer for models that have a geometry field.
+    The geometry field is expected to be in WKT format, ot GEOJSON.
+    The the serializer expects the the table to have the fields:
+        -id: the primary key of the table
+        -geom: the geometry field
+    The serializer will return the geometry in WKT and GEOJSON format,
+        in the fields 'geom_geojson' and 'geom_wkt'.
+    """
+    check_geometry_is_valid = True #if true it will check if the geometry is valid: not self-intersecting and closed
     check_st_relation = True #if true it will chck the relation of the geometry with the other geometries
     matrix9IM = 'T********' #matrix 9IM for the relation of the geometries: 'T********' = interiors intersects
     geoms_as_wkt = True #if true the serializer expects the geometries in WKT format. If false, in geojson format
@@ -17,7 +25,7 @@ class GeoModelSerializer(serializers.ModelSerializer):
     geom_wkt = serializers.SerializerMethodField()  # Este campo es para serialización (output)
 
     class Meta:
-        fields = ['geom', 'geom_geojson', 'geom_wkt']
+        fields = ['id', 'geom', 'geom_geojson', 'geom_wkt']
 
     def create(self, validated_data):
         geom_in_text = validated_data.pop('geom')  # Obtener la geometría en formato geojson

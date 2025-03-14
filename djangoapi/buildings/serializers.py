@@ -19,7 +19,7 @@ class BuildingsSerializer(GeoModelSerializer):
 
     class Meta:
         model = Buildings
-        fields = ['id', 'description', 'area', 'geom', 'geom_geojson', 'geom_wkt']
+        fields = GeoModelSerializer.Meta.fields + ['description', 'area']
 
     def validate_geom(self, value):
         """Validates if a geometry is valid.

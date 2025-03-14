@@ -9,4 +9,6 @@ router.register(r'buildings', views.BuildingsModelViewSet)
 urlpatterns = [
     path("hello_world/", views.HelloWord.as_view(),name="hello_world"),
     path('', include(router.urls)),
+    path('buildings_view/<str:action>/', views.BuildigsView.as_view(), name='buildings_views'),  # POST requests
+    path('buildings_view/<str:action>/<int:id>/', views.BuildigsView.as_view(), name='buildings_views'),  # POST requests
 ]
