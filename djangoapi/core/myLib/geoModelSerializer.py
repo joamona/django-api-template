@@ -4,6 +4,7 @@ from django.db import connection
 from rest_framework import serializers
 
 from djangoapi.settings import EPSG_FOR_GEOMETRIES, ST_SNAP_PRECISION
+from .geometryTools import WkbConversor, GeometryChecks
 
 class GeoModelSerializer(serializers.ModelSerializer):
     """

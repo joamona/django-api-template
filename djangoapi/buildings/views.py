@@ -16,7 +16,7 @@ from rest_framework import viewsets
 from rest_framework import permissions
 
 #My imports
-from core.myLib.geometryChecks import GeometryChecks
+from core.myLib.geometryTools import WkbConversor, GeometryChecks
 from .models import Buildings
 from .serializers import BuildingsSerializer
 from djangoapi.settings import EPSG_FOR_GEOMETRIES, ST_SNAP_PRECISION
@@ -157,26 +157,41 @@ class BuildigsView(View):
         l=list(Buildings.objects.filter(id=id))
         if len(l)==0:
             return JsonResponse({'ok':False, "message": f"The building id {id} does not exist", "data":[]}, status=200)
+        b=l[0]
+
         originalWkt=request.POST.get('geom', None)
         
         if originalWkt is not None:
-            gc=GeometryChecks(originalWkt)
-            newWkt=gc.get_as_wkt()
-            geojson=gc.get_as_geojson()
+            conversor=WkbConversor()
+            wkb=conversor.set_wkb_from_wkt(originalWkt)
+            newWkt=conversor.get_as_wkt()
+            geojson=conversor.get_as_geojson()
+            gc=GeometryChecks(wkb)
             isValid=gc.is_geometry_valid()
-            interesectionIds=gc.check_st_relate('buildings_buildings','T********')
+            interesectionIds=gc.check_st_relate('buildings_buildings','T********', id_to_avoid=id)
+            thereAre = gc.are_there_related_ids()
 
             print(f"Snaped wkt: {newWkt}")
             print(f"Snaped geojson: {geojson}")
             print(f"Snaped is valid: {isValid}")
             print(f"Snaped intersection ids: {interesectionIds}")
-            print(f"There are intersection ids: {gc.there_are_stRelatedIds()}")
+            print(f"There are intersection ids: {thereAre}")
+            print(gc.get_relate_message())
+
             if not(isValid):
                 return JsonResponse({'ok':False, 'message': 'The geometry is not valid after the st_SnapToGrid', 'data':[]}, status=400)   
-            if gc.there_are_stRelatedIds():
-                return JsonResponse({'ok':False, 'message': gc.get_st_relate_message(), 'data':[]}, status=400)   
+            if gc.are_there_related_ids():
+                return JsonResponse({'ok':False, 'message': gc.get_relate_message(), 'data':gc.related_ids}, status=400)   
+            b.geom=wkb
+            b.description=request.POST.get('description', '')
+            polyGeos=GEOSGeometry(wkb)
+            b.area=polyGeos.area
+            b.save()
+            d=model_to_dict(b)
+            d['geom']=conversor.get_as_wkt()#snaped version
 
-        return JsonResponse({'ok':True, 'message': "Building updated", 'data':[]}, status=200)   
+
+        return JsonResponse({'ok':True, 'message': "Building updated", 'data':[d]}, status=200)   
 
 
     def delete(self, id):
