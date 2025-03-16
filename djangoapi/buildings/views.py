@@ -163,7 +163,7 @@ class BuildigsView(View):
         
         if originalWkt is not None:
             conversor=WkbConversor()
-            wkb=conversor.set_wkb_from_wkt(originalWkt)
+            wkb=conversor.set_wkt_from_text(originalWkt)
             newWkt=conversor.get_as_wkt()
             geojson=conversor.get_as_geojson()
             gc=GeometryChecks(wkb)

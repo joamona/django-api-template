@@ -12,7 +12,23 @@ class WkbConversor:
 
         self.__wkb=None
 
-    def set_wkb_from_geojson(self, geojson:str)->str:
+    def set_wkt_from_text(self, geom_text:str)-> str:
+        """
+        Receives a string, with a geojson, or wkt geometry,
+        and return it in wkt. 
+        If the self.st_snap_precision is true the vertices are rounded
+        """
+        if 'coordinates' in geom_text:
+            print('geojson')
+            return self.__set_wkb_from_geojson(geom_text)
+        else:
+            print('wkt')
+            return self.__set_wkb_from_wkt(geom_text)
+
+    def set_wkb_from_wkb(self,wkb):
+        self.__wkb=wkb
+
+    def __set_wkb_from_geojson(self, geojson:str)->str:
         cursor = connection.cursor()
         #Ejecuta la función PostGIS ST_GeomFromText para convertir WKT a WKB
         print('set_wkb_from_geojson')
@@ -39,7 +55,7 @@ class WkbConversor:
         self.__wkb=row[0]
         return self.get_as_wkb()  # Esto será el WKB
 
-    def set_wkb_from_wkt(self, wkt:str):
+    def __set_wkb_from_wkt(self, wkt:str):
         cursor = connection.cursor()
         #Ejecuta la función PostGIS ST_GeomFromText para convertir WKT a WKB
         print('set_wkb_from_wkt')
@@ -134,25 +150,25 @@ class GeometryChecks:
         #row is true or false
         return row[0]
             
-    def check_st_relate(self, layerName: str, matrix9IM: str, id_to_avoid:int=None)->list:
+    def check_st_relate(self, table_name: str, matrix9IM: str, id_to_avoid:int=None)->list:
         """Checks whether or not exists a geometry wih the relation of the geom with all the geometries in the layer
             layername using the matrix 9IM. The geom is in geojson format.
         """
         
         cursor=connection.cursor()
         if id_to_avoid is None:
-            q=f"""SELECT id FROM {layerName} WHERE ST_relate(geom,%s,%s)"""
+            q=f"""SELECT id FROM {table_name} WHERE ST_relate(geom,%s,%s)"""
             values=[self.wkb, matrix9IM]
         else:
-            q=f"""SELECT id FROM {layerName} WHERE ST_relate(geom,%s,%s) and id != %s"""
+            q=f"""SELECT id FROM {table_name} WHERE ST_relate(geom,%s,%s) and id != %s"""
             values=[self.wkb, matrix9IM, id_to_avoid]
         cursor.execute(q, values)
         self.related_ids=cursor.fetchall()
         self.requested_relation= f'ST_relate, matrix: {matrix9IM}'
-        self.table_name=layerName
+        self.table_name=table_name
         return self.related_ids  # Devuelve los ids de las geometrías que cumplen la relación
 
-    def check_st_condition(self, layerName: str, st_condition: str, id_to_avoid:int=None)->list:   
+    def check_st_condition(self, table_name: str, st_condition: str, id_to_avoid:int=None)->list:   
         """Checks whether or not exists a geometry wih the condition 
            st_condition: st_intersects, st_contains, st_within, ... 
            of the current geom with all the geometries in the layer
@@ -160,16 +176,16 @@ class GeometryChecks:
         """
         cursor=connection.cursor()
         if id_to_avoid is None:
-            q=f"""SELECT id FROM {layerName} WHERE {st_condition}(geom,%s)"""
+            q=f"""SELECT id FROM {table_name} WHERE {st_condition}(geom,%s)"""
             values=[self.wkb]
         else:
-            q=f"""SELECT id FROM {layerName} WHERE {st_condition}(geom,%s) and id != %s"""
+            q=f"""SELECT id FROM {table_name} WHERE {st_condition}(geom,%s) and id != %s"""
             values=[self.wkb, id_to_avoid]
 
         cursor.execute(q, values)
         self.related_ids=cursor.fetchall()
         self.requested_relation= st_condition
-        self.table_name=layerName
+        self.table_name=table_name
         return self.related_ids
 
     def are_there_related_ids(self)->bool:

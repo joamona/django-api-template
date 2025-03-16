@@ -19,6 +19,69 @@ class GeoModelSerializer(serializers.ModelSerializer):
     check_geometry_is_valid = True #if true it will check if the geometry is valid: not self-intersecting and closed
     check_st_relation = True #if true it will chck the relation of the geometry with the other geometries
     matrix9IM = 'T********' #matrix 9IM for the relation of the geometries: 'T********' = interiors intersects
+    geom = serializers.CharField(write_only=True) # Este campo es para input. No se devuelve en GETs
+    geom_geojson = serializers.SerializerMethodField()  # Este campo es para serialización (output)
+    geom_wkt = serializers.SerializerMethodField()  # Este campo es para serialización (output)
+
+    class Meta:
+        fields = ['id', 'geom', 'geom_geojson', 'geom_wkt']
+
+    def validate_geom(self, value):
+        """Validates if a geometry in geojson/wkt is valid.
+        If pass all checks, return the wkb value, wich is the 
+        value stored in the database
+        """
+        print('validate_geom')
+        c=WkbConversor()
+        wkb=c.set_wkt_from_text(value)
+        gc=GeometryChecks(wkb)
+        if self.check_geometry_is_valid:
+            if not gc.is_geometry_valid():
+                raise serializers.ValidationError('Invalid geometry. May be self-intersecting or not closed.')
+        if self.check_st_relation:
+            #we have to know if we are editing (UPDATE) or inserting (CREATE)
+            if self.instance:
+                print("It is an UPDATE. You must remove the current geometry from the checks")
+                gc.check_st_relate(self.get_table_name(),self.matrix9IM, self.instance.id)
+                if gc.are_there_related_ids():
+                    raise serializers.ValidationError(gc.get_relate_message)
+            else:
+                print("It is a CREATE.")
+                gc.check_st_relate(self.get_table_name(),self.matrix9IM)        
+                if gc.are_there_related_ids():
+                    raise serializers.ValidationError(gc.get_relate_message)        
+        return wkb
+    
+    def get_geom_geojson(self, obj):
+        """Obtiene la geometría en formato WKT a partir de WKB usando PostGIS."""
+        print('get_geom_asgeojson ')
+        c=WkbConversor()
+        c.set_wkb_from_wkb(obj.geom)
+        return c.get_as_geojson()
+    
+    def get_geom_wkt(self, obj):
+        """Obtiene la geometría en formato WKT a partir de WKB usando PostGIS."""
+        print('get_geom_wkt')
+        c=WkbConversor()
+        c.set_wkb_from_wkb(obj.geom)
+        return c.get_as_geojson()
+        
+    def get_table_name(self):
+        return self.Meta.model._meta.db_table
+
+class GeoModelSerializer2(serializers.ModelSerializer):
+    """
+    This class is a serializer for models that have a geometry field.
+    The geometry field is expected to be in WKT format, ot GEOJSON.
+    The the serializer expects the the table to have the fields:
+        -id: the primary key of the table
+        -geom: the geometry field
+    The serializer will return the geometry in WKT and GEOJSON format,
+        in the fields 'geom_geojson' and 'geom_wkt'.
+    """
+    check_geometry_is_valid = True #if true it will check if the geometry is valid: not self-intersecting and closed
+    check_st_relation = True #if true it will chck the relation of the geometry with the other geometries
+    matrix9IM = 'T********' #matrix 9IM for the relation of the geometries: 'T********' = interiors intersects
     geoms_as_wkt = True #if true the serializer expects the geometries in WKT format. If false, in geojson format
 
     geom = serializers.CharField(write_only=True) # Este campo es para input. No se devuelve en GETs
@@ -29,7 +92,7 @@ class GeoModelSerializer(serializers.ModelSerializer):
         fields = ['id', 'geom', 'geom_geojson', 'geom_wkt']
 
     def create(self, validated_data):
-        geom_in_text = validated_data.pop('geom')  # Obtener la geometría en formato geojson
+        geom_in_text = validated_data.pop('geom')  # Obtener la geometría en formato geojson/wkt
         validated_data['geom'] = self.convert_to_wkb(geom_in_text)
         return super().create(validated_data)
 
