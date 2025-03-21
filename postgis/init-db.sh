@@ -10,7 +10,7 @@ done
 
 echo "PostgreSQL is ready. Starting restore."
 
-psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c "create extension if not exists postgis"
+psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} "create extension if not exists postgis"
 
 ### RESTORE THE DATABASE
 #To restore a databse follow the following steps.
