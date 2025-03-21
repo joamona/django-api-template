@@ -44,7 +44,7 @@ services:
     networks:
       - postgis
 
-    geoserver:
+  geoserver:
      image: docker.osgeo.org/geoserver:2.24.2
      restart: unless-stopped
      ports:
