@@ -55,16 +55,12 @@ class GeoModelSerializer(serializers.ModelSerializer):
     def get_geom_geojson(self, obj):
         """Obtiene la geometría en formato WKT a partir de WKB usando PostGIS."""
         print('get_geom_asgeojson ')
-        c=WkbConversor()
-        c.set_wkb_from_wkb(obj.geom)
-        return c.get_as_geojson()
+        return obj.geom.geojson
     
     def get_geom_wkt(self, obj):
         """Obtiene la geometría en formato WKT a partir de WKB usando PostGIS."""
         print('get_geom_wkt')
-        c=WkbConversor()
-        c.set_wkb_from_wkb(obj.geom)
-        return c.get_as_geojson()
+        return obj.geom.wkt
         
     def get_table_name(self):
         return self.Meta.model._meta.db_table
