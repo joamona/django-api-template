@@ -16,6 +16,7 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 EPSG_FOR_GEOMETRIES=int(os.getenv('EPSG_FOR_GEOMETRIES',4326))
 ST_SNAP_PRECISION=float(os.getenv('ST_SNAP_PRECISION',0.0001))
+MAX_NUMBER_OF_RETRIEVED_ROWS=int(os.getenv('MAX_NUMBER_OF_RETRIEVED_ROWS',1000))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/

@@ -19,7 +19,7 @@ from rest_framework import permissions
 from core.myLib.geometryTools import WkbConversor, GeometryChecks
 from .models import Buildings
 from .serializers import BuildingsSerializer
-from djangoapi.settings import EPSG_FOR_GEOMETRIES, ST_SNAP_PRECISION
+from djangoapi.settings import EPSG_FOR_GEOMETRIES, ST_SNAP_PRECISION, MAX_NUMBER_OF_RETRIEVED_ROWS
 
 def custom_logout_view(request):
     logout(request)
@@ -79,16 +79,28 @@ class BuildigsView(View):
     
     #GET OPERATIONS
     def selectone(self, id):
-        return JsonResponse({"message": "Select one method called"}, status=200)
+        l=list(Buildings.objects.filter(id=id))
+        if len(l)==0:
+            return JsonResponse({'ok':False, "message": f"The building id {id} does not exist", "data":[]}, status=400)
+        b=l[0]
+        d=model_to_dict(b)
+        d['geom']=b.geom.wkt
+        return JsonResponse({'ok':True, 'message': 'Building Retriewed', 'data': [d]}, status=200)
 
     def selectall(self):
-        return JsonResponse({"message": "Select all method called"}, status=200)
+        l=Buildings.objects.all()[:MAX_NUMBER_OF_RETRIEVED_ROWS]
+        data=[]
+        for b in l:
+            d=model_to_dict(b)
+            d['geom']=b.geom.wkt
+            data.append(d)
+        return JsonResponse({'ok':True, 'message': 'Data retrieved', 'data': data}, status=200)
 
     #POST OPERATIONS
     def insert(self, request):
         """
         Inserts the polygon. Latter snap it to the grid. This must be done
-        in the database. So we need to insert before.
+        in the database. So we need to insert it before.
         After the building has been inserted:
             - snap it to grid
             - Check if the geometry is valid
@@ -152,11 +164,10 @@ class BuildigsView(View):
             we are going to use a psycop connection and a raw sql query to
             get the snapped geometry as wkb. This demonstrates
             some times it is better to know raw sql.
-
         """
         l=list(Buildings.objects.filter(id=id))
         if len(l)==0:
-            return JsonResponse({'ok':False, "message": f"The building id {id} does not exist", "data":[]}, status=200)
+            return JsonResponse({'ok':False, "message": f"The building id {id} does not exist", "data":[]}, status=400)
         b=l[0]
 
         originalWkt=request.POST.get('geom', None)
@@ -190,12 +201,15 @@ class BuildigsView(View):
             d=model_to_dict(b)
             d['geom']=conversor.get_as_wkt()#snaped version
 
-
         return JsonResponse({'ok':True, 'message': "Building updated", 'data':[d]}, status=200)   
 
-
     def delete(self, id):
-        return JsonResponse({"message": "Delete method called"}, status=200)
+        l=list(Buildings.objects.filter(id=id))
+        if len(l)==0:
+            return JsonResponse({'ok':False, "message": f"The building id {id} does not exist", "data":[]}, status=400)
+        b=l[0]
+        b.delete()  
+        return JsonResponse({'ok':True, "message": f"The building id {id} has been deleted", "data":[]}, status=200)
 
     
 class BuildingsModelViewSet(viewsets.ModelViewSet):
