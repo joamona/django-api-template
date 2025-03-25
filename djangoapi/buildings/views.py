@@ -20,6 +20,7 @@ from core.myLib.geometryTools import WkbConversor, GeometryChecks
 from .models import Buildings
 from .serializers import BuildingsSerializer
 from djangoapi.settings import EPSG_FOR_GEOMETRIES, ST_SNAP_PRECISION, MAX_NUMBER_OF_RETRIEVED_ROWS
+from core.myLib.baseDjangoView import BaseDjangoView
 
 def custom_logout_view(request):
     logout(request)
@@ -29,7 +30,7 @@ class HelloWord(View):
     def get(self, request):
         return JsonResponse({"ok":True,"message": "Buildings. Hello world", "data":[]})
 
-class BuildigsView(View):
+class BuildigsView(BaseDjangoView):
     """
     DJANGO CLASS BASED VIEW
 
@@ -40,6 +41,10 @@ class BuildigsView(View):
         -get() -> Handles the select operation. It will return the record with the id.
         -post() -> Handles the insert, update, and delete operations.
 
+    The get and post methods are defined in the BaseDjangoView. They forward the request
+    to the methods selectone, selectall, insert, update, and delete.
+  
+    To use this view:
     To get a record, the URL must be like:
         GET /buildings_view/selectone/<id>/
     To get all the records, the URL must be like:
@@ -51,32 +56,14 @@ class BuildigsView(View):
     To delete a record, the URL must be like:
         POST /buildings_view/delete/<id>/
     """
-    def get(self, request, *args, **kwargs):
-        """Handles the 'select' method with a GET request."""
-        action=kwargs.get('action')
-        if action == 'selectone':
-            id = kwargs.get('id')
-            return self.selectone(id)
-        elif action == 'selectall':
-            return self.selectall()
-        else:            
-            return JsonResponse({"message": "Invalid operation option"}, status=400)
-
-    def post(self, request, *args, **kwargs):
-        """Handles insert, update, and delete depending on the URL parameter."""
-        action = kwargs.get('action')
-        
-        if action == 'insert':
-            return self.insert(request)
-        elif action == 'update':
-            id = kwargs.get('id')
-            return self.update(request, id)
-        elif action == 'delete':
-            id = kwargs.get('id')
-            return self.delete(id)
-        else:
-            JsonResponse({"message": "Invalid operation option"}, status=400)
     
+    def post(self, request, *args, **kwargs):
+        action = kwargs.get('action')
+        if action == 'insert2':
+            return self.insert2(request)
+        else:            
+            return super().get(request, *args, **kwargs)
+
     #GET OPERATIONS
     def selectone(self, id):
         l=list(Buildings.objects.filter(id=id))
@@ -108,7 +95,10 @@ class BuildigsView(View):
             - If any check fails, remove the row.
             - The only inconvenient is the id counter sums one more
         """
-
+        originalWkt=request.POST.get('geom', None)
+        if originalWkt is None:
+            return JsonResponse({'ok':False, 'message': 'The geometry mandartory', 'data':[]}, status=400)
+        
         #Creates the geometry
         g=GEOSGeometry(request.POST.get('geom',''), srid=EPSG_FOR_GEOMETRIES)
         #print the representation of the object
@@ -200,7 +190,9 @@ class BuildigsView(View):
             b.save()
             d=model_to_dict(b)
             d['geom']=conversor.get_as_wkt()#snaped version
-
+        else:
+            return JsonResponse({'ok':False, 'message': 'The geometry mandartory', 'data':[]}, status=400)
+        
         return JsonResponse({'ok':True, 'message': "Building updated", 'data':[d]}, status=200)   
 
     def delete(self, id):
@@ -211,7 +203,34 @@ class BuildigsView(View):
         b.delete()  
         return JsonResponse({'ok':True, "message": f"The building id {id} has been deleted", "data":[]}, status=200)
 
-    
+    def insert2(self, request):
+        originalWkt=request.POST.get('geom', None)
+        
+        if originalWkt is not None:
+            conversor=WkbConversor()
+            wkb=conversor.set_wkt_from_text(originalWkt)
+            gc=GeometryChecks(wkb)
+            isValid=gc.is_geometry_valid()
+            gc.check_st_relate('buildings_buildings','T********')
+            print(gc.get_relate_message())
+
+            if not(isValid):
+                return JsonResponse({'ok':False, 'message': 'The geometry is not valid after the st_SnapToGrid', 'data':[]}, status=400)   
+            if gc.are_there_related_ids():
+                return JsonResponse({'ok':False, 'message': gc.get_relate_message(), 'data':gc.related_ids}, status=400)   
+            
+            b=Buildings()
+            b.geom=wkb
+            b.description=request.POST.get('description', '')
+            b.area=b.geom
+            b.save()
+            d=model_to_dict(b)
+            d['geom']=b.geom.wkt
+        else:
+            return JsonResponse({'ok':False, 'message': 'The geometry mandartory', 'data':[]}, status=400)
+
+        return JsonResponse({'ok':True, 'message': "Building Inserted", 'data':[d]}, status=200)   
+        
 class BuildingsModelViewSet(viewsets.ModelViewSet):
     """
     DJANGO REST FRAMEWORK VIEWSET.

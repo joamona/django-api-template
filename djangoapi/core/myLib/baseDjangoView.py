@@ -46,10 +46,11 @@ class BaseDjangoView(View):
                 
             def post(self, request, *args, **kwargs):
                 action = kwargs.get('action')
-    
                 if action == 'newpostmethod':
                     return self.newpostmethod()
-
+                else:            
+                    return super().get(request, *args, **kwargs)
+                    
         To call them, the URL must be like:
             GET /buildings_view/newgetmethod/
             POST /buildings_view/newpostmethod/       
