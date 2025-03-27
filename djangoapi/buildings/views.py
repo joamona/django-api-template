@@ -5,6 +5,7 @@ from django.views import View
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.forms.models import model_to_dict
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 #Geoss
 from django.contrib.gis.geos import GEOSGeometry
@@ -30,7 +31,7 @@ class HelloWord(View):
     def get(self, request):
         return JsonResponse({"ok":True,"message": "Buildings. Hello world", "data":[]})
 
-class BuildigsView(BaseDjangoView):
+class BuildigsView(LoginRequiredMixin, BaseDjangoView):
     """
 
     The get and post methods are defined in the BaseDjangoView. They forward the request

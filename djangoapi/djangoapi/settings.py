@@ -151,4 +151,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 #On logout, redirect to the login page
-LOGOUT_REDIRECT_URL = "/accounts/login/"
+#LOGOUT_REDIRECT_URL = "/accounts/login/"
+
+#if you try to use a view without being logged in, redirect to the following URL
+LOGIN_URL = "/core/not_loggedin/"
