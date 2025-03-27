@@ -32,17 +32,13 @@ class HelloWord(View):
 
 class BuildigsView(BaseDjangoView):
     """
-    DJANGO CLASS BASED VIEW
-
-    This class is a class based view that will handle the insert, 
-    update, delete and select operations over the Buildings model.
-
-    The class has the following methods:
-        -get() -> Handles the select operation. It will return the record with the id.
-        -post() -> Handles the insert, update, and delete operations.
 
     The get and post methods are defined in the BaseDjangoView. They forward the request
-    to the methods selectone, selectall, insert, update, and delete.
+    to the methods selectone, selectall, insert, update, and delete, depending of the 
+    action parameter in the URL.
+
+    This class redefine the the methods selectone, selectall, insert, update, and delete
+    of the BaseDjangoView class to add a new action, insert2.
   
     To use this view:
     To get a record, the URL must be like:
@@ -58,6 +54,11 @@ class BuildigsView(BaseDjangoView):
     """
     
     def post(self, request, *args, **kwargs):
+        """
+        Redefines the post method of the BaseDjangoView class to add a new action.
+        If the action is insert2, it will call the insert2 method.
+        if not it will call the post method of the BaseDjangoView class.
+        """
         action = kwargs.get('action')
         if action == 'insert2':
             return self.insert2(request)
@@ -204,6 +205,15 @@ class BuildigsView(BaseDjangoView):
         return JsonResponse({'ok':True, "message": f"The building id {id} has been deleted", "data":[]}, status=200)
 
     def insert2(self, request):
+        """
+        This method do the same that the insert methid, 
+        but by using the core/mylib/geometryTools.py module. 
+        The geometryTools.py has been coded by the teacher,
+        and has been created 
+        because I realized that using the Geoss library 
+        is a bit complicated, overall to update, 
+        due to the geometry checks we do.
+        """
         originalWkt=request.POST.get('geom', None)
         
         if originalWkt is not None:
@@ -230,7 +240,9 @@ class BuildigsView(BaseDjangoView):
             return JsonResponse({'ok':False, 'message': 'The geometry mandartory', 'data':[]}, status=400)
 
         return JsonResponse({'ok':True, 'message': "Building Inserted", 'data':[d]}, status=200)   
-        
+
+
+
 class BuildingsModelViewSet(viewsets.ModelViewSet):
     """
     DJANGO REST FRAMEWORK VIEWSET.
