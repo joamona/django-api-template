@@ -5,6 +5,7 @@ from . import views
 
 router = routers.DefaultRouter()
 router.register(r'buildings', views.BuildingsModelViewSet)
+router.register(r'owners', views.OwnersModelViewSet)
 
 urlpatterns = [
     path("hello_world/", views.HelloWord.as_view(),name="hello_world"),

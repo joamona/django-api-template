@@ -44,12 +44,12 @@ class GeoModelSerializer(serializers.ModelSerializer):
                 print("It is an UPDATE. You must remove the current geometry from the checks")
                 gc.check_st_relate(self.get_table_name(),self.matrix9IM, self.instance.id)
                 if gc.are_there_related_ids():
-                    raise serializers.ValidationError(gc.get_relate_message)
+                    raise serializers.ValidationError(gc.get_relate_message())
             else:
                 print("It is a CREATE.")
                 gc.check_st_relate(self.get_table_name(),self.matrix9IM)        
                 if gc.are_there_related_ids():
-                    raise serializers.ValidationError(gc.get_relate_message)        
+                    raise serializers.ValidationError(gc.get_relate_message())        
         return wkb
     
     def get_geom_geojson(self, obj):

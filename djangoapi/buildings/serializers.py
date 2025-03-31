@@ -4,8 +4,7 @@ from django.db import connection
 from rest_framework import serializers
 
 from core.myLib.geoModelSerializer import GeoModelSerializer
-from .models import Buildings
-from djangoapi.settings import EPSG_FOR_GEOMETRIES, ST_SNAP_PRECISION
+from .models import Buildings, Owners
 
 class BuildingsSerializer(GeoModelSerializer):
     check_geometry_is_valid = True #if true ºit will check if the geometry is valid: not self-intersecting and closed
@@ -19,7 +18,10 @@ class BuildingsSerializer(GeoModelSerializer):
 
     class Meta:
         model = Buildings
-        fields = GeoModelSerializer.Meta.fields + ['description', 'area']
+        fields = GeoModelSerializer.Meta.fields + ['description', 'area'] # The serializer 
+                    #assumes that the model has the geometry field \textit{geom}. 
+                    # add here the rest of the fields of the model that you want to serialize
+                    # and that are not in the GeoModelSerializer
 
     def validate_geom(self, value):
         """Validates if a geometry is valid.
@@ -28,3 +30,14 @@ class BuildingsSerializer(GeoModelSerializer):
         print('validate_geom, child')
         return super().validate_geom(value)
         
+class OwnersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Owners
+        fields = ['id', 'name', 'dni']
+    
+    #you can validate the fields of the model using the validate_<field_name> method
+    #def validate_<field_name>(self, value):
+    def validate_name(self, value):
+        if 'bad' in value:
+            raise serializers.ValidationError("The name can't contain 'bad'.")
+        return value   
