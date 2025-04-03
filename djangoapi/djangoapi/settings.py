@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'core',
     'codelist',
     'buildings',
+    'flowers',
 ]
 
 MIDDLEWARE = [
