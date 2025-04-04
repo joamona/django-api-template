@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'codelist',
     'buildings',
     'flowers',
+    'smartcities'
 ]
 
 MIDDLEWARE = [
