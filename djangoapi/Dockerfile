@@ -40,6 +40,7 @@ COPY . .
 # Set the user root to install the dependencies. Otherwise the
 # the python dependencies are not found latter in the container
 USER root
+RUN chmod +x initdb.sh
 RUN pip3 install -r requirements.txt
 # Set the user again to be the defaut user in the container
 USER $USERNAME

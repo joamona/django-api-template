@@ -31,7 +31,7 @@ class HelloWord(View):
     def get(self, request):
         return JsonResponse({"ok":True,"message": "Buildings. Hello world", "data":[]})
 
-class BuildigsView(LoginRequiredMixin, BaseDjangoView):
+class BuildigsView(BaseDjangoView):
     """
 
     The get and post methods are defined in the BaseDjangoView. They forward the request
@@ -61,10 +61,12 @@ class BuildigsView(LoginRequiredMixin, BaseDjangoView):
         if not it will call the post method of the BaseDjangoView class.
         """
         action = kwargs.get('action')
+        print(f"action child: {action}")
+
         if action == 'insert2':
             return self.insert2(request)
         else:            
-            return super().get(request, *args, **kwargs)
+            return super().post(request, *args, **kwargs)
 
     #GET OPERATIONS
     def selectone(self, id):
@@ -117,8 +119,10 @@ class BuildigsView(LoginRequiredMixin, BaseDjangoView):
         #Now we get a new object with the new geometry to perform the checks
         b=Buildings.objects.get(id=b.id)
         print('Snapped geometry',b.geom.wkt)
-        bGeos=GEOSGeometry(b.geom.wkt, srid=25830)
-        valid=bGeos.valid
+        #bGeos=GEOSGeometry(b.geom.wkt, srid=25830)
+        #valid=bGeos.valid
+        #b.geom is a GEOSGeometry object, so we can use it directly
+        valid=b.geom.valid
         print(f'Valid: {valid}')
         if not valid:
             print(f"Deleting invalid geometry {b.id}")
@@ -142,7 +146,7 @@ class BuildigsView(LoginRequiredMixin, BaseDjangoView):
         
         #create a building object, from the model Buildings
         d=model_to_dict(b)
-        d['geom']=bGeos.wkt
+        d['geom']=b.geom.wkt
         return JsonResponse({'ok':True, 'message': 'Data inserted', 'data': [d]}, status=201)
 
     def update(self, request, id):
@@ -233,7 +237,7 @@ class BuildigsView(LoginRequiredMixin, BaseDjangoView):
             b=Buildings()
             b.geom=wkb
             b.description=request.POST.get('description', '')
-            b.area=b.geom
+            b.area=b.geom.area
             b.save()
             d=model_to_dict(b)
             d['geom']=b.geom.wkt
@@ -266,7 +270,7 @@ class BuildingsModelViewSet(viewsets.ModelViewSet):
         -destroy() -> DELETE operation over /buildings/buildings/<id>/. 
                 It will delete the record with the id.
     """
-    queryset = Buildings.objects.all()[:MAX_NUMBER_OF_RETRIEVED_ROWS]#The opeartions will be done over all the records of the Buildings model
+    queryset = Buildings.objects.all()
     serializer_class = BuildingsSerializer#The serializer that will be used to serialize 
                             #the data. and check the data that is sent in the request.
     permission_classes = [permissions.AllowAny]#Any can use it.
@@ -296,7 +300,7 @@ class OwnersModelViewSet(viewsets.ModelViewSet):
         -destroy() -> DELETE operation over /buildings/owners/<id>/. 
                 It will delete the record with the id.
     """
-    queryset = Owners.objects.all()[:MAX_NUMBER_OF_RETRIEVED_ROWS]#The opeartions will be done over all the records of the Owners model
+    queryset = Owners.objects.all()
     serializer_class = OwnersSerializer#The serializer that will be used to serialize 
                             #the data. and check the data that is sent in the request.
     permission_classes = [permissions.AllowAny]#Any can use it.

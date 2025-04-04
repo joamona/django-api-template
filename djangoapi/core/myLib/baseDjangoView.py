@@ -69,7 +69,7 @@ class BaseDjangoView(View):
     def post(self, request, *args, **kwargs):
         """Handles insert, update, and delete depending on the URL parameter."""
         action = kwargs.get('action')
-        
+        print(f"action father: {action}")
         if action == 'insert':
             return self.insert(request)
         elif action == 'update':
