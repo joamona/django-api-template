@@ -19,7 +19,7 @@ from rest_framework import permissions
 #My imports
 from core.myLib.geometryTools import WkbConversor, GeometryChecks
 from .models import Owners
-from .serializers import OwnersSerializer
+from .serializers import SmartOwnersSerializer
 from djangoapi.settings import EPSG_FOR_GEOMETRIES, ST_SNAP_PRECISION, MAX_NUMBER_OF_RETRIEVED_ROWS
 from core.myLib.baseDjangoView import BaseDjangoView
 
@@ -54,7 +54,7 @@ class OwnersModelViewSet(viewsets.ModelViewSet):
                 It will delete the record with the id.
     """
     queryset = Owners.objects.all()
-    serializer_class = OwnersSerializer#The serializer that will be used to serialize 
+    serializer_class = SmartOwnersSerializer#The serializer that will be used to serialize 
                             #the data. and check the data that is sent in the request.
     permission_classes = [permissions.AllowAny]#Any can use it.
                                 # Use https://rsinger86.github.io/drf-access-policy/
