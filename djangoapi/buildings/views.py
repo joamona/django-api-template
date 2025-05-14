@@ -99,9 +99,13 @@ class BuildigsView(BaseDjangoView):
             - If any check fails, remove the row.
             - The only inconvenient is the id counter sums one more
         """
+        print(f"Insert building")
+        print(f"Request: {request.POST}")
+        print(f"Request body: {request.body}")
+        #Check if the geometry is present
         originalWkt=request.POST.get('geom', None)
         if originalWkt is None:
-            return JsonResponse({'ok':False, 'message': 'The geometry mandartory', 'data':[]}, status=400)
+            return JsonResponse({'ok':False, 'message': 'The geometry is mandartory', 'data':[]}, status=400)
         
         #Creates the geometry
         g=GEOSGeometry(request.POST.get('geom',''), srid=EPSG_FOR_GEOMETRIES)
