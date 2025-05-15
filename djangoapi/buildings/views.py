@@ -72,7 +72,7 @@ class BuildigsView(BaseDjangoView):
     def selectone(self, id):
         l=list(Buildings.objects.filter(id=id))
         if len(l)==0:
-            return JsonResponse({'ok':False, "message": f"The building id {id} does not exist", "data":[]}, status=400)
+            return JsonResponse({'ok':False, "message": f"The building id {id} does not exist", "data":[]}, status=200)
         b=l[0]
         d=model_to_dict(b)
         d['geom']=b.geom.wkt
