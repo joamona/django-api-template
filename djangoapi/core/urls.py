@@ -11,4 +11,5 @@ urlpatterns = [
     path('not_loggedin/', views.notLoggedIn, name="not_loggedin"),
     path('login/', views.LoginView.as_view(),name="login"),
     path('logout/', views.LogoutView.as_view(),name="login"),
+    path('isloggedin/', views.IsLoggedIn.as_view(),name="isloggedin"),
 ]
