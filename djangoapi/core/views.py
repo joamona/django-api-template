@@ -21,7 +21,7 @@ class LoginView(View):
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             username=request.user.username
-            return JsonResponse({"ok":True,"message": "The user {0} already is authenticated".format(username), "data":[]})
+            return JsonResponse({"ok":True,"message": "The user {0} already is authenticated".format(username), "data":[{'username':request.user.username}]})
 
         username=request.POST.get('username')
         password=request.POST.get('password')
