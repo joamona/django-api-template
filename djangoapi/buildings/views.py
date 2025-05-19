@@ -201,7 +201,7 @@ class BuildigsView(BaseDjangoView):
             d=model_to_dict(b)
             d['geom']=conversor.get_as_wkt()#snaped version
         else:
-            return JsonResponse({'ok':False, 'message': 'The geometry mandartory', 'data':[]}, status=200)
+            return JsonResponse({'ok':False, 'message': 'Update. The geometry is mandartory', 'data':[]}, status=200)
         
         return JsonResponse({'ok':True, 'message': "Building updated", 'data':[d]}, status=200)   
 
