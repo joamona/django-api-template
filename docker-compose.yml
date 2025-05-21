@@ -72,7 +72,7 @@ services:
       - ./djangoapi:/home/${DJANGOAPI_USERNAME}
     ports:
       - 127.0.0.1:8888:8000
-      - 127.0.0.1:6789:6789
+      #- 127.0.0.1:6789:6789
     env_file:
       - .env.dev
     networks:
