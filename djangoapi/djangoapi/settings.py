@@ -164,7 +164,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 if DEBUG:
     LOGIN_URL = "/core/not_loggedin/"
 else:
-    LOGIN_URL = "desweb-api/core/not_loggedin/"
+    LOGIN_URL = "/desweb-api/core/not_loggedin/"
 
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
