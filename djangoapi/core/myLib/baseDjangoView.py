@@ -1,6 +1,6 @@
 
 from django.http import JsonResponse
-from django.views import View   
+from django.views import View  
 
 class BaseDjangoView(View):
     """
@@ -57,6 +57,7 @@ class BaseDjangoView(View):
     """
     def get(self, request, *args, **kwargs):
         """Handles the 'select' method with a GET request."""
+
         action=kwargs.get('action')
         if action == 'selectone':
             id = kwargs.get('id')
@@ -68,6 +69,7 @@ class BaseDjangoView(View):
 
     def post(self, request, *args, **kwargs):
         """Handles insert, update, and delete depending on the URL parameter."""
+        
         action = kwargs.get('action')
         print(f"action father: {action}")
         if action == 'insert':
