@@ -32,7 +32,7 @@ class LoginView(View):
                     # in followoing requests, know who is the user and if
                     # he is already authenticated. 
                     # The coockies are sent in the response header on POST requests
-            return JsonResponse({"ok":True,"message": "User {0} logged in".format(username), "data":[{"userame": username}]})
+            return JsonResponse({"ok":True,"message": "User {0} logged in".format(username), "data":[{"username": username}]})
         else:
             # To make thinks difficult to hackers, you make a random delay,
             # between 0 and 1 second
