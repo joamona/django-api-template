@@ -18,15 +18,6 @@ EPSG_FOR_GEOMETRIES=int(os.getenv('EPSG_FOR_GEOMETRIES',4326))
 ST_SNAP_PRECISION=float(os.getenv('ST_SNAP_PRECISION',0.0001))
 MAX_NUMBER_OF_RETRIEVED_ROWS=int(os.getenv('MAX_NUMBER_OF_RETRIEVED_ROWS',1000))
 
-DJANGO_SUPERUSER_EMAIL=os.getenv('DJANGO_SUPERUSER_EMAIL')
-FORCE_SCRIPT_NAME=os.getenv('FORCE_SCRIPT_NAME')
-
-API_URL=os.getenv('API_URL')#El dominio y alias de acceso a la API, con BARRA FINAL. 
-                            #Ej https://mydomain.com/metatierrascol-api/
-WEB_URL=os.getenv('WEB_URL')#La dirección a la web. Se usa en los emails
-TEMPLATE_ASSETS_URL=os.getenv('TEMPLATE_ASSETS_URL')#dirección de los archivos
-                                    #estáticos usados en las plantillas
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
@@ -37,17 +28,8 @@ SECRET_KEY = os.getenv('SECRET_KEY','DKLSJGHFHF654165464kasdjhadkgf')
 REMOTE_DEBUG = False
 DEBUG = os.getenv("DEBUG", 'False').lower() in ('true', '1', 't')
 
-allowed_hosts_str = os.getenv('DJANGO_ALLOWED_HOSTS')
-if allowed_hosts_str:
-    # Si la variable de entorno es el comodín, asigna la lista con el comodín
-    if allowed_hosts_str == '*':
-        ALLOWED_HOSTS = ['*']
-    else:
-        # Si son hosts específicos, los separa y limpia
-        ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',')]
-else:
-    # Si la variable no existe, asigna una lista vacía para seguridad
-    ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [os.getenv('DJANGO_ALLOWED_HOSTS')]
+
 
 # Application definition
 
@@ -65,10 +47,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_gis',
     'django_filters',
-    #'drf_yasg',
+    'drf_yasg',
     #add all your django apps here
-    'drf_spectacular',
-    'guardian',    
     'core',
     'codelist',
     'buildings',
@@ -190,15 +170,4 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
-
-#Email
-EMAIL_HOST = os.getenv('EMAIL_HOST')
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS','True').lower() == 'true' #Devuelve True si se cumple
-EMAIL_PORT = os.getenv('EMAIL_PORT')
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_UPV = os.getenv('EMAIL_UPV')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-EMAIL_FROM = os.getenv('EMAIL_FROM')
-ADMINS=[(os.getenv('DJANGO_EMAIL_FOR_ERRORS_USER_NAME'), os.getenv('DJANGO_EMAIL_FOR_ERRORS_EMAIL'))]
