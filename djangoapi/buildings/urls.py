@@ -6,6 +6,8 @@ from . import views
 router = routers.DefaultRouter()
 router.register(r'buildings', views.BuildingsModelViewSet)
 router.register(r'owners', views.OwnersModelViewSet)
+router.register(r'buildingsowners', views.BuildingsOwnersModelViewSet)
+
 
 urlpatterns = [
     path("hello_world/", views.HelloWord.as_view(),name="hello_world"),

@@ -82,8 +82,6 @@ class Flower(BaseDjangoView):
             l.append(d)     
         return JsonResponse({"ok":True,"message": f"Flowers retriewed {len(lf)}", "data":l})
    
-
-
     def update(self, request,id):
         f=list(FlowerModel.objects.filter(id=id))
         if len(f)<1:

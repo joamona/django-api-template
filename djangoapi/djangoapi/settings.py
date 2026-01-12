@@ -68,12 +68,11 @@ INSTALLED_APPS = [
     #'drf_yasg',
     #add all your django apps here
     'drf_spectacular',
-    'guardian',    
+    #'guardian',    
     'core',
     'codelist',
     'buildings',
     'flowers',
-    'smartcities'
 ]
 
 MIDDLEWARE = [
@@ -94,7 +93,6 @@ if DEBUG:
 
 #necressary to allow the cookies to be sent in the header of the request
 CORS_ALLOW_CREDENTIALS = True
-
 ROOT_URLCONF = 'djangoapi.urls'
 
 TEMPLATES = [

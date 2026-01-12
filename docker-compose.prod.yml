@@ -73,7 +73,7 @@ services:
     command: gunicorn djangoapi.wsgi:application --bind 0.0.0.0:8000
 #    command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./djangoapi:/home/${DJANGOAPI_USERNAME}
+      - ./djangoapi:/usr/src/app
     ports:
       - 127.0.0.1:${GISSERVER_DOCKER_DJANGO_API_FORWARDED_PORT}:8000
     env_file:

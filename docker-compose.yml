@@ -69,9 +69,9 @@ services:
 
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./djangoapi:/home/${DJANGOAPI_USERNAME}
+      - ./djangoapi:/usr/src/app
     ports:
-      - 127.0.0.1:8888:8000
+      - 127.0.0.1:${DEVELOP_DOCKER_DJANGO_API_FORWARDED_PORT}:8000
       #- 127.0.0.1:6789:6789
     env_file:
       - .env.dev

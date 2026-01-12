@@ -1,16 +1,12 @@
 
-from django.db import connection
-
 from rest_framework import serializers
 
 from core.myLib.geoModelSerializer import GeoModelSerializer
-from .models import Buildings, Owners
+from .models import Buildings, Owners, BuildingsOwners
 
 class BuildingsSerializer(GeoModelSerializer):
     check_geometry_is_valid = True #if true ºit will check if the geometry is valid: not self-intersecting and closed
-    check_st_relation = True #if true it will chck the relation of the geometry with the other geometries
     matrix9IM = 'T********' #matrix 9IM for the relation of the geometries: 'T********' = interiors intersects
-    geoms_as_wkt = True #if true the serializer expects the geometries in WKT format. If false, in geojson format
     check_st_relation = True #if the new geometry must be checked against 
             #the other geometries in the table according to the matrix9IM. If any geometry
             #has the relation with the new geometry, the new geometry is not saved
@@ -40,4 +36,25 @@ class OwnersSerializer(serializers.ModelSerializer):
     def validate_name(self, value):
         if 'bad' in value:
             raise serializers.ValidationError("The name can't contain 'bad'.")
-        return value   
+        return value
+    
+class BuildingsOwnersSerializer(serializers.ModelSerializer):
+    building_description = serializers.SerializerMethodField()  # Este campo es para serialización (output)
+    owner_dni = serializers.SerializerMethodField()  # Este campo es para serialización (output)
+    class Meta:
+        model = BuildingsOwners
+        fields = ['id', 'building', 'owner', 'owner_percentage', 'building_description', 'owner_dni']
+
+    def get_building_description(self, obj:BuildingsOwners):
+        return obj.building.description
+
+    def get_owner_dni(self, obj:BuildingsOwners):
+        return obj.owner.dni
+
+    def validate_owner_percentage(self, value):
+        print('validate_owner_percentage', value)
+        if value <=0 or value > 100:
+            raise serializers.ValidationError({'owner_percentage': 'From the serializer. The owner_percentage must be between 0 and 100'})
+            pass
+        return value
+    
