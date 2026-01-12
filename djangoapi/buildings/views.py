@@ -15,6 +15,8 @@ from django.contrib.gis.db.models.functions import SnapToGrid
 #rest_framework imports
 from rest_framework import viewsets
 from rest_framework import permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 #My imports
 from core.myLib.geometryTools import WkbConversor, GeometryChecks
@@ -281,12 +283,14 @@ class BuildingsModelViewSet(viewsets.ModelViewSet):
                 It will delete the record with the id.
 
     """
+
     queryset = Buildings.objects.all()
     serializer_class = BuildingsSerializer#The serializer that will be used to serialize 
                             #the data. and check the data that is sent in the request.
     permission_classes = [permissions.AllowAny]#Any can use it.
                                 # Use https://rsinger86.github.io/drf-access-policy/
                                 # to more advanced permissions management
+
 
 
 class OwnersModelViewSet(viewsets.ModelViewSet):
@@ -319,9 +323,38 @@ class OwnersModelViewSet(viewsets.ModelViewSet):
                                 # to more advanced permissions management
 
 class BuildingsOwnersModelViewSet(viewsets.ModelViewSet):
-    queryset = BuildingsOwners.objects.all()
+    queryset = BuildingsOwners.objects.all()  #<- Vamos a definir una función para delimitar los objetos
     serializer_class = BuildingsOwnersSerializer#The serializer that will be used to serialize 
                             #the data. and check the data that is sent in the request.
     permission_classes = [permissions.AllowAny]#Any can use it.
                                 # Use https://rsinger86.github.io/drf-access-policy/
                                 # to more advanced permissions management
+
+    def get_queryset(self):
+        #IMPORTANTE
+        #limitar los registros en los que el usuario autenticado es el propietario
+        #user_id=self.request.user.id
+        #pero como en estos ejemplos no se requiere autenticación, ponemos el usuario a id=1
+        user_id=1
+        return BuildingsOwners.objects.all().filter(owner=user_id)
+
+    #define custom methods
+    #detail=false indicates that it works with all objects
+    #and the url must not have the id  ej. /55/ 
+    @action(detail=False, methods=['get'])
+    def custom_method(self, request, *args, **kwargs):
+        objList: list[BuildingsOwners] = list(self.get_queryset())#obtiene una lista de todos las filas
+        data=[]
+        for obj in objList:
+            d={'dni':obj.owner.dni, 'description':obj.building.description}
+            data.append(d)
+        return Response(data=data)
+    
+    #define custom methods
+    #detail=true indicates that it works only with the object which id is in the url
+    #and the url must not have the id  ej. /55/ 
+    @action(detail=True, methods=['get'])
+    def custom_method_detail(self, request, *args, **kwargs):
+        obj:BuildingsOwners = self.get_object()#obtiene el objeto del id en la url (55)
+        d={'dni':obj.owner.dni, 'description':obj.building.description}
+        return Response(data=[d])
