@@ -336,7 +336,7 @@ class BuildingsOwnersModelViewSet(viewsets.ModelViewSet):
         #user_id=self.request.user.id
         #pero como en estos ejemplos no se requiere autenticación, ponemos el usuario a id=1
         user_id=1
-        return BuildingsOwners.objects.all().filter(owner=user_id)
+        return BuildingsOwners.objects.all().filter(id=user_id)
 
     #define custom methods
     #detail=false indicates that it works with all objects

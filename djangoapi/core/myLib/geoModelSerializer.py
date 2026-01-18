@@ -1,5 +1,6 @@
 
 from django.db import connection
+from django.contrib.gis.geos import GEOSGeometry
 
 from rest_framework import serializers
 
@@ -64,6 +65,46 @@ class GeoModelSerializer(serializers.ModelSerializer):
         
     def get_table_name(self):
         return self.Meta.model._meta.db_table
+    
+
+class GeomodelPolygonSerializer(GeoModelSerializer):
+    class Meta:
+        fields = GeoModelSerializer.Meta.fields + ['area', 'perimeter']
+
+    def validate(self, data):
+        """
+        Este método se ejecuta después de las validaciones de los campos validate_...().
+        Cada validate devuelve un valor que puede haber sido modificado, estos valores están en
+        el objeto 'data' de este método.
+        Aquí se calculan el área y el perímetro de la geometría
+        """
+        geom_modificada = data.get('geom')
+        g=GEOSGeometry(geom_modificada, srid=EPSG_FOR_GEOMETRIES)
+        data['area']=g.area
+
+        data['perimeter']=g.length
+        return data
+
+class GeomodelLinestringSerializer(GeoModelSerializer):
+    """
+    Se espera que la tabla tenga el campo length
+    :var fields: Descripción
+    """
+    class Meta:
+        fields = GeoModelSerializer.Meta.fields + ['length']
+
+    def validate(self, data):
+        """
+        Este método se ejecuta después de las validaciones de los campos validate_...().
+        Cada validate devuelve un valor que puede haber sido modificado, estos valores están en
+        el objeto 'data' de este método.
+        Aquí se calculan el área y el perímetro de la geometría
+        """
+        geom_modificada = data.get('geom')
+        g=GEOSGeometry(geom_modificada, srid=EPSG_FOR_GEOMETRIES)
+        data['length']=g.length
+        return data
+    
 
 class GeoModelSerializer2(serializers.ModelSerializer):
     """

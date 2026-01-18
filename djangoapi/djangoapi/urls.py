@@ -40,4 +40,5 @@ urlpatterns = [
     path('core/', include('core.urls')),
     path('buildings/', include('buildings.urls')),
     path('flowers/', include('flowers.urls')),
+    path('accidentes/', include('accidentes.urls')),
 ]
