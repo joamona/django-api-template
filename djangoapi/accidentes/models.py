@@ -8,4 +8,4 @@ from djangoapi.settings import EPSG_FOR_GEOMETRIES
 class Accidentes(models.Model):
     description = models.CharField(max_length=100)
     geom = gis_models.PointField(srid=int(EPSG_FOR_GEOMETRIES))
-    user = models.ForeignKey(get_user_model(), default=1, null=False,blank=True, on_delete=models.CASCADE)
+    creator = models.ForeignKey(get_user_model(), default=1, null=False,blank=True, on_delete=models.CASCADE)

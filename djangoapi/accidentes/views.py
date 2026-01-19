@@ -1,7 +1,9 @@
+from django.contrib.auth.models import User
 
 #rest_framework imports
 from rest_framework import viewsets
 from rest_framework import permissions
+
 from .models import Accidentes
 from .serializers import AccidentesSerializer
 
@@ -38,6 +40,17 @@ class AccidentesModelViewSet(viewsets.ModelViewSet):
     queryset = Accidentes.objects.all()
     serializer_class = AccidentesSerializer#The serializer that will be used to serialize 
                             #the data. and check the data that is sent in the request.
-    permission_classes = [permissions.AllowAny]#Any can use it.
+    permission_classes = [permissions.IsAuthenticated]#Any can use it.
                                 # Use https://rsinger86.github.io/drf-access-policy/
                                 # to more advanced permissions management
+    def get_queryset(self):
+        #IMPORTANTE
+        #limitar los registros en los que el usuario autenticado es el propietario
+        user: User=self.request.user
+        if user.groups.filter('admin').exists():
+            return Accidentes.objects.all()
+        elif user.groups.filter('asegurado').exists():
+            return Accidentes.objects.all().filter(creator_id=user.id)
+        
+
+

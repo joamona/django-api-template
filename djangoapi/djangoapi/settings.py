@@ -12,7 +12,10 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
+from datetime import timedelta
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+DJANGO_SUPERUSER_USERNAME=(os.getenv('DJANGO_SUPERUSER_USERNAME'))
 BASE_DIR = Path(__file__).resolve().parent.parent
 EPSG_FOR_GEOMETRIES=int(os.getenv('EPSG_FOR_GEOMETRIES',4326))
 ST_SNAP_PRECISION=float(os.getenv('ST_SNAP_PRECISION',0.0001))
@@ -64,6 +67,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_gis',
+    #https://jazzband.github.io/django-rest-knox/
+    'knox',
     'django_filters',
     #'drf_yasg',
     #add all your django apps here
@@ -190,6 +195,16 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': ('knox.auth.TokenAuthentication',),
+}
+
+REST_KNOX = {
+    #'USER_SERIALIZER':'accounts.serializers.UserSerializer',
+    'TOKEN_TTL': timedelta(days=int(os.getenv("DJANGO_SESSION_EXPIRY_DAYS", 1))),
+    'TOKEN_LIMIT_PER_USER':int(os.getenv("TOKEN_LIMIT_PER_USER")),
 }
 
 #Email

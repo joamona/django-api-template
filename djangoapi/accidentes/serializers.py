@@ -16,10 +16,10 @@ class AccidentesSerializer(GeoModelSerializer, BaseUserSerializer):
 
     class Meta:
         model = Accidentes
-        fields = GeoModelSerializer.Meta.fields + ['description', 'user'] # The serializer 
+        fields = GeoModelSerializer.Meta.fields + ['description', 'creator'] # The serializer 
     
     def validate(self, data):
-        data['user']= self.get_creator_user()
+        data['creator']= self.get_creator_user()
         return data
 
 
