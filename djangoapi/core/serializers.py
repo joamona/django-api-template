@@ -5,8 +5,9 @@ from djangoapi.settings import REST_KNOX
 from django.contrib.auth import authenticate
 
 class LoginViewWithKnoxSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField(style={'input_type': 'password'}, trim_whitespace=False)
+    username = serializers.CharField(help_text="El nombre de usuario único del sistema")
+    password = serializers.CharField(help_text="Contraseña personal del usuario",
+                                     style={'input_type': 'password'}, trim_whitespace=False)
 
     def validate_username(self,value):
         #validate_propiedad permite hacer validaciones adicionales sobre los campos
@@ -35,3 +36,8 @@ class LoginViewWithKnoxSerializer(serializers.Serializer):
         attrs['user'] = user
         return attrs
 
+class EmptySerializer(serializers.Serializer):
+    pass
+
+class LogoutAllUserSessionsSerializer(serializers.Serializer):
+    username = serializers.CharField(help_text="El nombre de usuario. Si no es admin, el toquen de autorización debe ser suyo")

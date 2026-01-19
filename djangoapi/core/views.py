@@ -47,7 +47,6 @@ class LogoutView(LoginRequiredMixin, View):
                             #the the session_id, stored in a cookie
         return JsonResponse({"ok":True,"message": "The user {0} is now logged out".format(username), "data":[]})
 
-
 class IsLoggedIn(View):
     def post(self, request, *args, **kwargs):
         print(request.user.username)

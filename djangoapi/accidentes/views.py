@@ -47,9 +47,9 @@ class AccidentesModelViewSet(viewsets.ModelViewSet):
         #IMPORTANTE
         #limitar los registros en los que el usuario autenticado es el propietario
         user: User=self.request.user
-        if user.groups.filter('admin').exists():
+        if user.groups.filter(name='admin').exists():
             return Accidentes.objects.all()
-        elif user.groups.filter('asegurado').exists():
+        elif user.groups.filter(name='asegurado').exists():
             return Accidentes.objects.all().filter(creator_id=user.id)
         
 
