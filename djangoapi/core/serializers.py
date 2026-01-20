@@ -1,8 +1,11 @@
 
+from django.contrib.auth import authenticate
+
 from rest_framework import serializers
+
 from core.myLib import knoxSessions
 from djangoapi.settings import REST_KNOX
-from django.contrib.auth import authenticate
+
 
 class LoginViewWithKnoxSerializer(serializers.Serializer):
     username = serializers.CharField(help_text="El nombre de usuario único del sistema")
@@ -20,7 +23,10 @@ class LoginViewWithKnoxSerializer(serializers.Serializer):
         username = attrs.get('username')
 
         os=knoxSessions.getOpenedKnoxSessions(username)
-        if os>=REST_KNOX['TOKEN_LIMIT_PER_USER']:
+
+        TOKEN_LIMIT_PER_USER=REST_KNOX['TOKEN_LIMIT_PER_USER']
+
+        if os>=TOKEN_LIMIT_PER_USER:
             raise serializers.ValidationError({"error_solicitud":f"El número máximo de sesiones abiertas ({REST_KNOX['TOKEN_LIMIT_PER_USER']}) ha sido alcanzado. Cierre alguna sesión antes de iniciar una nueva."})
         
         password = attrs.get('password')

@@ -24,6 +24,7 @@ from knox.auth import TokenAuthentication
 from core import serializers
 #from core.commonLibs import knox, managePermissions
 from core.myLib import manageUsers, knoxSessions
+from djangoapi.settings import REST_KNOX, DJANGO_KNOX_AUTOMATICALLY_REMOVE_TOKENS
 
 def notLoggedIn(request: HttpRequest):
     return JsonResponse({"ok":False,"message": "You are not logged in", "data":[]})
@@ -88,10 +89,25 @@ class KnoxLogin(KnoxLoginView):
         serializer = self.serializer_class(data=request.data)
         valid= serializer.is_valid(raise_exception=False)#así, si no es válido, no lanza excepción, 
                 #y se ejecuta el else:
+        messages={}
+        sesiones_borradas=False
         if valid:
             user:User = serializer.validated_data['user']
+            os=knoxSessions.getOpenedKnoxSessions(request.data['username'])
+            if DJANGO_KNOX_AUTOMATICALLY_REMOVE_TOKENS:
+                TOKEN_LIMIT_PER_USER=REST_KNOX['TOKEN_LIMIT_PER_USER']
+                if os == TOKEN_LIMIT_PER_USER-1:
+                    #Borra todos los tokens anteriores
+                    AuthToken.objects.filter(user=user).delete() 
+                    messages['sesiones_borradas']=f'Habría alcanzado el número máximo de sesiones abiertas {TOKEN_LIMIT_PER_USER}. Se han cerrado todas y abierto una nueva'
+                    sesiones_borradas=True
             login(request, user)
+            #Crea el nuevo token
             response = super().post(request, format=None)
+            if sesiones_borradas:
+                os=1
+            else:
+                os=os+1
         else:
             return Response({"messages": serializer.errors, "politica_acceso": {"acceso":"Acceso denegado"},"data":None }, status=status.HTTP_401_UNAUTHORIZED)
         #print('Validated data') 
@@ -100,10 +116,11 @@ class KnoxLogin(KnoxLoginView):
         groups = manageUsers.getUserGroupsAsDict(request.data['username'])
         v['groups'] = groups #la lista de grupos a los que pertenece el usuario
         v['username'] = request.data['username']
-        os=knoxSessions.getOpenedKnoxSessions(request.data['username'])
+
         v['opened_sessions']= os
         v["user"]= user.id
-        return Response({'messages':{'exito':'Identificación realizada con éxito'},"politica_acceso": {"acceso":"Permitido"},'data':[v]}, status=status.HTTP_200_OK)
+        messages['exito']='Identificación realizada con éxito'
+        return Response({'messages':messages,"politica_acceso": {"acceso":"Permitido"},'data':[v]}, status=status.HTTP_200_OK)
 
 class KnoxLogout(APIView):
     permission_classes = (permissions.IsAuthenticated, )

@@ -3,9 +3,11 @@ from django.contrib.auth.models import User
 #rest_framework imports
 from rest_framework import viewsets
 from rest_framework import permissions
+from rest_framework.response import Response
 
 from .models import Accidentes
 from .serializers import AccidentesSerializer
+from .accessPolicy import AccidentesAccessPolicy
 
 class AccidentesModelViewSet(viewsets.ModelViewSet):
     """
@@ -40,7 +42,7 @@ class AccidentesModelViewSet(viewsets.ModelViewSet):
     queryset = Accidentes.objects.all()
     serializer_class = AccidentesSerializer#The serializer that will be used to serialize 
                             #the data. and check the data that is sent in the request.
-    permission_classes = [permissions.IsAuthenticated]#Any can use it.
+    permission_classes = [AccidentesAccessPolicy]#Any can use it.
                                 # Use https://rsinger86.github.io/drf-access-policy/
                                 # to more advanced permissions management
     def get_queryset(self):
@@ -53,4 +55,7 @@ class AccidentesModelViewSet(viewsets.ModelViewSet):
             return Accidentes.objects.all().filter(creator_id=user.id)
         
 
-
+    # def destroy(self, request, *args, **kwargs):
+    #     if not request.user.groups.filter(name='admin').exists():
+    #         return Response({'messages':'Usted no puede eliminar accidentes'})
+    #     return super().destroy(request, *args, **kwargs)
