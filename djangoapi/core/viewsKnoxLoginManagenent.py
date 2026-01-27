@@ -1,7 +1,6 @@
 # Create your views here.
 #Django imports
 from django.http import JsonResponse, HttpRequest, HttpResponse
-from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib.auth.signals import user_logged_out
 from django.contrib.sessions.models import Session
@@ -32,44 +31,17 @@ def notLoggedIn(request: HttpRequest):
 class IsValidToken(APIView):
     permission_classes = (permissions.IsAuthenticated, )
     serializer_class = serializers.EmptySerializer
+
     def post(self, request, format=None):
-        token = request.META.get('HTTP_AUTHORIZATION', False)
-        if token:
-            try:
-                # 1. Decodificar el token del header
-                # La cabecera es 'Token <el_token>', así que separamos y codificamos.
-                token_key = str(token).split()[1].encode("utf-8")
-            except IndexError:
-                # El formato del token es incorrecto (ej: falta la palabra 'Token')
-                return Response({"messages": {"error_solicitud":"Formato de token de autorización incorrecto. Ej: falta la palabra 'Token'"}, "politica_acceso":{"acceso":"Permiso denegado."}, "data":None}, status=status.HTTP_401_UNAUTHORIZED)
-
-            knoxAuth = TokenAuthentication()
-            try:
-                # 2. Intentamos autenticar. Si falla, se lanza AuthenticationFailed.
-                user, auth_token = knoxAuth.authenticate_credentials(token_key)   
-
-            except AuthenticationFailed as e:
-                return Response({
-                        "messages": {
-                            "detail": e.detail,
-                            "error_solicitud": "Token no válido o expirado."
-                        },
-                        "politica_acceso":{"acceso":"Permiso denegado."},
-                        'data':None
-                    }, 
-                    status=status.HTTP_401_UNAUTHORIZED)
-
-            # Si llegamos aquí, el token es válido.
-            groups = manageUsers.getUserGroupsAsDict(user.username)
-            os=knoxSessions.getOpenedKnoxSessions(user.username)
-                
-            return Response({
-                'messages':{'exito':'Identificación realizada con éxito'},
-                "politica_acceso":{"acceso":"Acceso permitido."},
-                'data': [{"detail": "Token Válido.", "username": user.username, "user": user.id,
-                        "groups":groups, "opened_sessions":os}]})
-        else: 
-            return Response({'messages':{'error_solicitud':'Token no encontrado'},"politica_acceso":{"acceso":"Acceso permitido a todos."}, 'data':None}, status=status.HTTP_401_UNAUTHORIZED)
+        user = request.user
+        token_actual = request.auth #instancia de AuthToken
+        groups = manageUsers.getUserGroupsAsDict(user.username)
+        os=knoxSessions.getOpenedKnoxSessions(user.username)
+        return Response({
+            'messages':{'success':'Identification success'},
+            "politica_acceso":{"acccess":"Allowed."},
+            'data': [{"detail": "Valid token.", "username": user.username, "user": user.id,
+                    "groups":groups, "opened_sessions":os}]})
 
 class KnoxLogin(KnoxLoginView):
     """
@@ -90,78 +62,31 @@ class KnoxLogin(KnoxLoginView):
         valid= serializer.is_valid(raise_exception=False)#así, si no es válido, no lanza excepción, 
                 #y se ejecuta el else:
         messages={}
-        sesiones_borradas=False
-        if valid:
-            user:User = serializer.validated_data['user']
-            os=knoxSessions.getOpenedKnoxSessions(request.data['username'])
-            if DJANGO_KNOX_AUTOMATICALLY_REMOVE_TOKENS:
-                TOKEN_LIMIT_PER_USER=REST_KNOX['TOKEN_LIMIT_PER_USER']
-                if os == TOKEN_LIMIT_PER_USER-1:
-                    #Borra todos los tokens anteriores
-                    AuthToken.objects.filter(user=user).delete() 
-                    messages['sesiones_borradas']=f'Habría alcanzado el número máximo de sesiones abiertas {TOKEN_LIMIT_PER_USER}. Se han cerrado todas y abierto una nueva'
-                    sesiones_borradas=True
-            login(request, user)
-            #Crea el nuevo token
-            response = super().post(request, format=None)
-            if sesiones_borradas:
-                os=1
-            else:
-                os=os+1
-        else:
-            return Response({"messages": serializer.errors, "politica_acceso": {"acceso":"Acceso denegado"},"data":None }, status=status.HTTP_401_UNAUTHORIZED)
+        if not valid:
+            return Response({"messages": serializer.errors, "access_policy": {"access":"Denied"},"data":None }, status=status.HTTP_401_UNAUTHORIZED)
         #print('Validated data') 
         #print(serializer.validated_data)
-        v=response.data #the response with the authentication token
+        validated_data=serializer.validated_data #the attrs dictionary
         groups = manageUsers.getUserGroupsAsDict(request.data['username'])
+        v={}
         v['groups'] = groups #la lista de grupos a los que pertenece el usuario
-        v['username'] = request.data['username']
+        v['username'] = validated_data['user'].username
 
-        v['opened_sessions']= os
-        v["user"]= user.id
-        messages['exito']='Identificación realizada con éxito'
+        v['opened_sessions']= validated_data['opened_sessions']
+        v["user"]= validated_data['user'].id
+        v["token"]=validated_data['token']
+        v["token_expiry"]=validated_data['token_expiry']
+        messages['success']='Success identification'
+        messages['serializer_message']=validated_data['serializer_message']
         return Response({'messages':messages,"politica_acceso": {"acceso":"Permitido"},'data':[v]}, status=status.HTTP_200_OK)
 
 class KnoxLogout(APIView):
     permission_classes = (permissions.IsAuthenticated, )
     serializer_class = serializers.EmptySerializer
     def post(self, request, format=None):
-        token = request.META.get('HTTP_AUTHORIZATION', False)
-        if token:
-            try:
-                token_key = str(token).split()[1].encode("utf-8")
-            except IndexError:
-                # ... manejo de error de formato ...
-                return Response({"messages": {"error_solicitud":"Formato de token de autorización incorrecto. Ej: falta la palabra 'Token'"}, "politica_acceso":{"acceso":"Acceso denegado."}, "data":None}, status=status.HTTP_401_UNAUTHORIZED)
-            
-            knoxAuth = TokenAuthentication()
-            
-            try:
-                # 2. Intentamos autenticar. auth_token es la instancia del modelo AuthToken.
-                user, auth_token = knoxAuth.authenticate_credentials(token_key)
-                
-            except AuthenticationFailed as e:
-                # ... manejo de token inválido/expirado ...
-                return Response({
-                        "messages": {
-                            "detail": e.detail,
-                            "error_solicitud": "Token no válido o expirado."
-                        },
-                        "politica_acceso":{"acceso":"Acceso denegado."},
-                        'data':None
-                    }, 
-                    status=status.HTTP_401_UNAUTHORIZED)
-        else:
-            # ... manejo de token no encontrado ...
-            return Response({'messages':{'error_solicitud':'Token no encontrado'},"politica_acceso":{"acceso":"Acceso denegado."}, 'data':None}, status=status.HTTP_401_UNAUTHORIZED)
-
-        # ----------------------------------------------------
-        # LÓGICA DE CIERRE DE SESIÓN:
-        # ----------------------------------------------------
-        
-        # 1. Elimina el token de la base de datos (invalida la sesión)
-        #    Usamos el objeto AuthToken devuelto por authenticate_credentials
-        auth_token.delete() # <--- ¡SOLUCIÓN!
+        user = request.user
+        auth_token = request.auth #Instancia de AuthToken
+        auth_token.delete()
 
         # Si existe una sesión de Django activa (gestionada por cookies/middleware)
         if hasattr(request, 'session') and request.session.session_key:
@@ -177,10 +102,10 @@ class KnoxLogout(APIView):
         # 3. Respuesta de éxito
         return Response({
             "messages": {
-                "exito": "Sesión cerrada."
+                "success": "Session closed."
             },
-            "politica_acceso":{"acceso":"Acceso permitido."},
-            'data':None
+            "access_policy":{"access":"Allowed to this view."},
+            "data": None
         }, status=status.HTTP_200_OK)
 
 class LogoutAllUserSessionsView(APIView):
@@ -190,27 +115,21 @@ class LogoutAllUserSessionsView(APIView):
         """
         Cierra todas las sesiones (tokens) de un usuario específico.
         Requiere el token actual en el header y el username en el cuerpo.
-            - El token debe corresponder al usuario cuyo username se envía.
+            - El token debe corresponder al usuario cuyo username se envía. En ese caso borra todas
+              las sesiones, menos la actual.
             - Si lo anterior no pasa, si el usuario pertenece a un grupo con permisos especiales,
                 ["admin"],
                 se le permite cerrar las sesiones de otros usuarios.
         """
-        
-        # ----------------------------------------------------
-        # 1. Extracción de Datos y Validaciones Iniciales
-        # ----------------------------------------------------
-        
-        # Obtener el token del header
-        header_token = request.META.get('HTTP_AUTHORIZATION', False)
-        
+               
         # Obtener el username del cuerpo de la petición (POST data)
         posted_username = request.data.get('username')
         
         # Validar si falta el username
         if not posted_username:
             return Response({
-                "messages": {"error_solicitud": "El campo 'username' es obligatorio en el cuerpo de la petición."},
-                "politica_acceso": {"acceso": "Acceso denegado."},
+                "messages": {"error_request": "The field 'username' is mandatory."},
+                "access_policy": {"access": "Allowed."},
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
             
@@ -219,72 +138,37 @@ class LogoutAllUserSessionsView(APIView):
         if len(l)==0:
             return Response(
                 {
-                "messages": {"error_solicitud": f"No se encontró el usuario {posted_username}"},
-                "politica_acceso": {"acceso": "Acceso denegado."},
+                "messages": {"error_request": f"Wrong username: {posted_username}"},
+                "access_policy": {"access": "Allowed."},
                 "data": None
                 }, 
                 status=status.HTTP_404_NOT_FOUND
             )
         else:
             user_to_remove_sessions:User=l[0]
-        
-        if not header_token:
-            return Response({
-                "messages": {"error_solicitud": "Token de autorización no encontrado en el header."},
-                "politica_acceso": {"acceso": "Acceso denegado."},
-                "data": None
-            }, status=status.HTTP_401_UNAUTHORIZED)
             
-        try:
-            # Decodificar el token
-            token_key = str(header_token).split()[1].encode("utf-8")
-        except IndexError:
-            return Response({
-                "messages": {"error_solicitud": "Formato de token de autorización incorrecto (debe ser 'Token <valor>')."},
-                "politica_acceso": {"acceso": "Acceso denegado."},
-                "data": None
-            }, status=status.HTTP_401_UNAUTHORIZED)
+        user = request.user
+        token_actual: AuthToken = request.auth
 
-        # ----------------------------------------------------
-        # 2. Autenticación y Verificación de Usuario
-        # ----------------------------------------------------
-        
-        knoxAuth = TokenAuthentication()
-        
-        try:
-            # Intenta autenticar el token enviado
-            user, auth_token = knoxAuth.authenticate_credentials(token_key)
-            
-        except AuthenticationFailed as e:
-            # El token es inválido o expirado
-            return Response({
-                "messages": {
-                    "detail": str(e.detail),
-                    "error_solicitud": "El token de la sesión actual no es válido o está expirado."
-                },
-                "politica_acceso": {"acceso": "Acceso denegado."},
-                "data": None
-            }, status=status.HTTP_401_UNAUTHORIZED)
-            
-        
+        os=knoxSessions.getOpenedKnoxSessions(user_to_remove_sessions.username)
         # Verificar que el usuario del token coincida con el usuario solicitado
         if user.username.lower() != posted_username.lower():
-            men1="El token proporcionado no corresponde al usuario solicitado."
+            men1="The posted username is not the authenticated user."
             if not user.groups.filter(name='admin').exists():
-                men2="El usuario no pertenece a un grupo con permisos para cerrar las sesiones de otros."
+                men2="The user does not belong to a group to be able to delete other user sessions."
                 return Response({
-                    "messages": {"error_solicitud": men1, "error_solicitud_2": men2},
-                    "politica_acceso": {"acceso": "Acceso denegado."},
+                    "messages": {"error_request": men1, "error_request_2": men2},
+                    "access_policy": {"access": "Access allowed to the view."},
                     "data": None
                 }, status=status.HTTP_403_FORBIDDEN) # 403 FORBIDDEN es más apropiado aquí
             else:
-                men2="El usuario dueño del token pertenece a un grupo con permisos para cerrar las sesiones de otros."
+                men2="The authenticated user belongs to a group to be able to delete other user sessions."
         else:
-            men1="El token proporcionado corresponde al usuario solicitado."  
+            men1="The posted username is the authenticated user."  
             if not user.groups.filter(name='admin').exists():
-                men2="El usuario no pertenece a un grupo con permisos para cerrar las sesiones de otros."
+                men2="The user does not belong to a group to be able to delete other user sessions."
             else:
-                men2="El usuario pertenece a un grupo con permisos para cerrar las sesiones de otros."
+                men2="The authenticated user belongs to a group to be able to delete other user sessions."
         # ----------------------------------------------------
         # 3. Cierre de Sesiones (Lógica Principal)
         # ----------------------------------------------------
@@ -293,9 +177,30 @@ class LogoutAllUserSessionsView(APIView):
         # Esto elimina todas las filas de knox_authtoken para el usuario autenticado
 
 
-        os=knoxSessions.getOpenedKnoxSessions(user_to_remove_sessions.username)
-
-        AuthToken.objects.filter(user=user_to_remove_sessions).delete() 
+        if men1 == "The posted username is the authenticated user.":
+            if os==1:
+                return Response({
+                    "messages": {
+                        "success": f"You only have one session opened. You can not close it with this operation. Use logout instead.",
+                        "detail_1": men1,
+                        "detail_2": men2
+                    },
+                    "access_policy": {"access": "Access granted to the view."},
+                    "data": [{"username": posted_username, "closed_sessions": 0}]
+                    }, status=status.HTTP_200_OK)
+            else:
+                AuthToken.objects.filter(user=user).exclude(pk=token_actual.pk).delete()
+                return Response({
+                    "messages": {
+                        "success": f"All your sessions, except the current one, have been successfuly closed. Username: {posted_username}. Closed sessions {os-1}",
+                        "detail_1": men1,
+                        "detail_2": men2
+                    },
+                    "access_policy": {"access": "Access granted to the view."},
+                    "data": [{"username": posted_username, "closed_sessions": 0}]
+                    }, status=status.HTTP_200_OK)
+        else:
+            AuthToken.objects.filter(user=user_to_remove_sessions).delete() 
 
         # 2. Eliminar TODAS las sesiones de Django para este usuario (¡CORRECCIÓN!)
         # Esto busca todas las sesiones cuyo contenido serializado contiene el user_id
@@ -324,11 +229,11 @@ class LogoutAllUserSessionsView(APIView):
         # 4. Respuesta de éxito
         return Response({
             "messages": {
-                "exito": f"Todas las sesiones ({os}) del usuario {posted_username} han sido cerradas con éxito.",
-                "detalle_1": men1,
-                "detalle_2": men2
+                "success": f"All sessions ({os}) from the user {posted_username} have been successfuly closed.",
+                "detail_1": men1,
+                "detail_2": men2
             },
-            "politica_acceso": {"acceso": "Acceso concedido."},
+            "access_policy": {"access": "Access granted to the view."},
             "data": [{"username": posted_username, "closed_sessions": os}]
         }, status=status.HTTP_200_OK)
 
@@ -338,65 +243,36 @@ class LogoutAllUsersSessionsView(APIView):
     serializer_class = serializers.EmptySerializer
     def post(self, request, format=None):
         """
-        Cierra todas las sesiones (tokens) de todos los usuarios, incluida la sesión actual.
+        Cierra todas las sesiones (tokens) de todos los usuarios, excepto la sesión actual.
         Requiere el token actual en el header y debe pertener a un grupo con permisos especiales (admin),
-                ["admin"],
         @param username: string en el body de la petición
         @return: Response
         """
 
-        header_token = request.META.get('HTTP_AUTHORIZATION', False)
-        if not header_token:
-            return Response({
-                "messages": {"error_solicitud": "Token de autorización no encontrado en el header."},
-                "politica_acceso": {"acceso": "Acceso denegado."},
-                "data": None
-            }, status=status.HTTP_401_UNAUTHORIZED)
-            
-        try:
-            # Decodificar el token
-            token_key = str(header_token).split()[1].encode("utf-8")
-        except IndexError:
-            return Response({
-                "messages": {"error_solicitud": "Formato de token de autorización incorrecto (debe ser 'Token <valor>')."},
-                "politica_acceso": {"acceso": "Acceso denegado."},
-                "data": None
-            }, status=status.HTTP_401_UNAUTHORIZED)
-        knoxAuth = TokenAuthentication()
-        
-        try:
-            # Intenta autenticar el token enviado
-            user, auth_token = knoxAuth.authenticate_credentials(token_key)
-            
-        except AuthenticationFailed as e:
-            # El token es inválido o expirado
-            return Response({
-                "messages": {
-                    "detail": str(e.detail),
-                    "error_solicitud": "El token de la sesión actual no es válido o está expirado."
-                },
-                "politica_acceso": {"acceso": "Acceso denegado."},
-                "data": None
-            }, status=status.HTTP_401_UNAUTHORIZED)
-            
-        
-        # Verificar que el usuario del token coincida con el usuario solicitado
+        user=request.user
+        token_actual = request.auth
 
         if not user.groups.filter(name="admin").exists():
-            men1="El usuario no pertenece al grupo admin."
+            men1="The user does not belong to the admin group."
             return Response({
-                "messages": {"error_solicitud": men1},
-                "politica_acceso": {"acceso": "Acceso denegado."},
+                "messages": {"error_request": men1},
+                "access_policy": {"acceso": "Access granted to this view."},
                 "data": None
             }, status=status.HTTP_403_FORBIDDEN) # 403 FORBIDDEN es más apropiado aquí
+        
         os=AuthToken.objects.all().count()
 
-        AuthToken.objects.all().delete() 
-
-        # 2. Eliminar TODAS las sesiones de Django para este usuario (¡CORRECCIÓN!)
-        # Esto busca todas las sesiones cuyo contenido serializado contiene el user_id
-        # Nota: SessionDataSerializer es una clase interna de Django para este propósito
-        all_sessions = Session.objects.all().delete()
+        if os == 1:
+            return Response({
+                "messages": {
+                    "success": f"No other user sessions exist.",
+                    "datail_1": "The user belongs to the admin group."
+                },
+                "access_policy": {"access": "Access granted to this view."},
+                "data": [{"username": user.username, "closed_sessions": 0}]
+            }, status=status.HTTP_200_OK)   
+                
+        AuthToken.objects.all().exclude(pk=token_actual.pk).delete()
 
         # 3. Enviar la señal user_logged_out
         user_logged_out.send(
@@ -408,9 +284,9 @@ class LogoutAllUsersSessionsView(APIView):
         # 4. Respuesta de éxito
         return Response({
             "messages": {
-                "exito": f"Todas las sesiones de todos los usuarios ({os}) han sido cerradas.",
-                "detalle_1": "El usuario pertenece al grupo admin."
+                "success": f"All sessions of all users, except the current one, have been closed: {os}.",
+                "datail_1": "The user belongs to the admin group."
             },
-            "politica_acceso": {"permitido": "Acceso concedido."},
-            "data": [{"username": user.username, "closed_sessions": os}]
+            "access_policy": {"access": "Access granted to this view."},
+            "data": [{"username": user.username, "closed_sessions": os-1}]
         }, status=status.HTTP_200_OK)
