@@ -1,6 +1,6 @@
 # Create your views here.
 #Django imports
-from django.http import JsonResponse, HttpRequest, HttpResponse
+from django.http import JsonResponse, HttpRequest
 from django.contrib.auth.models import User
 from django.contrib.auth.signals import user_logged_out
 from django.contrib.sessions.models import Session
@@ -9,81 +9,78 @@ from django.contrib.auth.signals import user_logged_out
 #rest framework imports
 from rest_framework import permissions
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework import status
 from rest_framework.views import APIView
 
+from rest_framework.exceptions import AuthenticationFailed
+
 from knox.views import LoginView as KnoxLoginView
 from knox.models import AuthToken # Necesario para eliminar todos los tokens
+from knox.auth import TokenAuthentication
 
 
 #mis módulos
 from core import serializers
-#from core.commonLibs import knox, managePermissions
-from core.myLib import manageUsers, knoxSessions
+from core.myLib import generalModule, drf, managePermissions
 
 def notLoggedIn(request: HttpRequest):
     return JsonResponse({"ok":False,"message": "You are not logged in", "data":[]})
 
-class IsValidToken(APIView):
-    permission_classes = (permissions.IsAuthenticated, )
-    serializer_class = serializers.EmptySerializer
 
-    def post(self, request, format=None):
-        user = request.user
-        token_actual = request.auth #instancia de AuthToken
-        groups = manageUsers.getUserGroupsAsDict(user.username)
-        os=knoxSessions.getOpenedKnoxSessions(user.username)
+class IsValidToken(APIView):
+    permission_classes=[permissions.IsAuthenticated]
+    def post(self,request, format=None):
+        user=request.user
+        groups = managePermissions.getUserGroupsAsDict(user.username)
+        os=AuthToken.objects.all().filter(user_id=user.id).count()    
         return Response({
-            'messages':{'success':'Identification success'},
-            "access_policy":{"acccess":"Allowed."},
-            'data': [{"detail": "Valid token.", "username": user.username, "user": user.id,
-                    "groups":groups, "opened_sessions":os}]})
+            'messages':{'exito':'Identificación realizada con éxito'},
+            "politica_acceso":{"acceso":"Acceso permitido."},
+            'data': [{"detail": "Token Válido.", "username": user.username, "user": user.id, "groups":groups, "opened_sessions":os}]})
 
 class KnoxLogin(KnoxLoginView):
-    """
-    Login con usuario y contraseña.
-    """
     permission_classes = (AllowAny, )
-    authentication_classes = [] # Esto sustituye al decorador
     serializer_class = serializers.LoginViewWithKnoxSerializer
 
     def post(self, request, format=None):
         """
-        Login de usuario:
-        
-        Este endpoint permite la autenticación de usuarios. Debes enviar 
-        las credenciales en el cuerpo de la petición (form-data o json).
+        Operación login con usuario y contraseña.
+        ---
         """
         serializer = self.serializer_class(data=request.data)
         valid= serializer.is_valid(raise_exception=False)#así, si no es válido, no lanza excepción, 
                 #y se ejecuta el else:
         messages={}
         if not valid:
-            return Response({"messages": serializer.errors, "access_policy": {"access":"Denied"},"data":None }, status=status.HTTP_401_UNAUTHORIZED)
+            mens=drf.manageSerializerErrors(serializer.errors)
+            return Response({"messages": mens, "politica_acceso": {"acceso":"Acceso abierto a la vista"},"data":None }, status=status.HTTP_401_UNAUTHORIZED) 
         #print('Validated data') 
         #print(serializer.validated_data)
         validated_data=serializer.validated_data #the attrs dictionary
-        groups = manageUsers.getUserGroupsAsDict(request.data['username'])
+        groups = managePermissions.getUserGroupsAsDict(request.data['username'])
         v={}
         v['groups'] = groups #la lista de grupos a los que pertenece el usuario
-        v['username'] = validated_data['user'].username
-
-        v['opened_sessions']= validated_data['opened_sessions']
+        v['username'] = request.data['username']
+        os=AuthToken.objects.all().filter(user_id=validated_data['user'].id).count()
+        v['opened_sessions']= os
         v["user"]= validated_data['user'].id
         v["token"]=validated_data['token']
         v["token_expiry"]=validated_data['token_expiry']
-        messages['success']='Success identification'
+        messages['exito']='Success identification'
         messages['serializer_message']=validated_data['serializer_message']
-        return Response({'messages':messages,"politica_acceso": {"acceso":"Permitido"},'data':[v]}, status=status.HTTP_200_OK)
+        return Response({'messages':messages,"politica_acceso": {"acceso":"Acceso abierto a la vista"},'data':[v]}, status=status.HTTP_200_OK)
 
 class KnoxLogout(APIView):
-    permission_classes = (permissions.IsAuthenticated, )
-    serializer_class = serializers.EmptySerializer
-    def post(self, request, format=None):
-        user = request.user
-        auth_token = request.auth #Instancia de AuthToken
-        auth_token.delete()
+    permission_classes = (IsAuthenticated, )
+
+    def post(self,request, format=None):
+        """
+        Operación logout. Necesita el el campo Authorization en el header con el valor Token XXXX....
+        ---
+        """
+        user=request.user
+        request.auth.delete()
 
         # Si existe una sesión de Django activa (gestionada por cookies/middleware)
         if hasattr(request, 'session') and request.session.session_key:
@@ -96,17 +93,17 @@ class KnoxLogout(APIView):
             user=user # Usamos el objeto user autenticado
         )
         
-        # 3. Respuesta de éxito
+        politica_msg = getattr(request, '_policy_log', {"politica_acceso": "Permiso concedido"})
         return Response({
             "messages": {
-                "success": "Session closed."
+                "exito": "Sesión cerrada."
             },
-            "access_policy":{"access":"Allowed to this view."},
-            "data": None
+            "politica_acceso":politica_msg,
+            'data': []
         }, status=status.HTTP_200_OK)
 
 class LogoutAllUserSessionsView(APIView):
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = (IsAuthenticated, )
     serializer_class = serializers.LogoutAllUserSessionsSerializer
     def post(self, request, format=None):
         """
@@ -147,7 +144,7 @@ class LogoutAllUserSessionsView(APIView):
         user = request.user
         token_actual: AuthToken = request.auth
 
-        os=knoxSessions.getOpenedKnoxSessions(user_to_remove_sessions.username)
+        os=AuthToken.objects.all().filter(user_id=user_to_remove_sessions.id).count()
         # Verificar que el usuario del token coincida con el usuario solicitado
         if user.username.lower() != posted_username.lower():
             men1="The posted username is not the authenticated user."
@@ -194,7 +191,7 @@ class LogoutAllUserSessionsView(APIView):
                         "detail_2": men2
                     },
                     "access_policy": {"access": "Access granted to the view."},
-                    "data": [{"username": posted_username, "closed_sessions": 0}]
+                    "data": [{"username": posted_username, "closed_sessions": os-1}]
                     }, status=status.HTTP_200_OK)
         else:
             AuthToken.objects.filter(user=user_to_remove_sessions).delete() 
@@ -234,9 +231,8 @@ class LogoutAllUserSessionsView(APIView):
             "data": [{"username": posted_username, "closed_sessions": os}]
         }, status=status.HTTP_200_OK)
 
-
 class LogoutAllUsersSessionsView(APIView):
-    permission_classes = (permissions.IsAuthenticated, )
+    permission_classes = (IsAdminUser, )
     serializer_class = serializers.EmptySerializer
     def post(self, request, format=None):
         """
@@ -249,13 +245,13 @@ class LogoutAllUsersSessionsView(APIView):
         user=request.user
         token_actual = request.auth
 
-        if not user.groups.filter(name="admin").exists():
-            men1="The user does not belong to the admin group."
-            return Response({
-                "messages": {"error_request": men1},
-                "access_policy": {"acceso": "Access granted to this view."},
-                "data": None
-            }, status=status.HTTP_403_FORBIDDEN) # 403 FORBIDDEN es más apropiado aquí
+        # if not user.groups.filter(name="admin").exists():
+        #     men1="The user does not belong to the admin group."
+        #     return Response({
+        #         "messages": {"error_request": men1},
+        #         "access_policy": {"acceso": "Access granted to this view."},
+        #         "data": None
+        #     }, status=status.HTTP_403_FORBIDDEN) # 403 FORBIDDEN es más apropiado aquí
         
         os=AuthToken.objects.all().count()
 
@@ -282,7 +278,7 @@ class LogoutAllUsersSessionsView(APIView):
         return Response({
             "messages": {
                 "success": f"All sessions of all users, except the current one, have been closed: {os}.",
-                "datail_1": "The user belongs to the admin group."
+                "datail_1": "The user is superuser."
             },
             "access_policy": {"access": "Access granted to this view."},
             "data": [{"username": user.username, "closed_sessions": os-1}]

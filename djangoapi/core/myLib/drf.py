@@ -82,7 +82,7 @@ def custom_exception_handler(exc, context):
                 return response # Ya viene formateado desde la política
             
             custom_data["messages"] = {"request_error": "Permission denied."}
-            custom_data["access_policy"] = manageSerializerErrors({"error": str(exc.detail)})
+            custom_data["access_policy"] = manageSerializerErrors({"request_error": str(exc.detail)})
             custom_data['data']=[]
 
         # CASO 3: Errores de Autenticación (403)
@@ -97,7 +97,7 @@ def custom_exception_handler(exc, context):
 
         # CASO 4: Cualquier otro error de DRF (404, 405, etc.)
         else:
-            custom_data["messages"] = manageSerializerErrors(response.data, {"error": "Unexpected error."})
+            custom_data["messages"] = manageSerializerErrors(response.data, {"request_error": "Unexpected error."})
             custom_data["data"] = []
             custom_data["access_policy"] = {"access": "Denied"}
         response.data = custom_data
