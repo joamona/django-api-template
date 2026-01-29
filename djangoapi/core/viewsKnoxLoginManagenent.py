@@ -11,19 +11,16 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.views import APIView
 
 from knox.views import LoginView as KnoxLoginView
 from knox.models import AuthToken # Necesario para eliminar todos los tokens
-from knox.auth import TokenAuthentication
+
 
 #mis módulos
 from core import serializers
 #from core.commonLibs import knox, managePermissions
 from core.myLib import manageUsers, knoxSessions
-from djangoapi.settings import REST_KNOX, DJANGO_KNOX_AUTOMATICALLY_REMOVE_TOKENS
 
 def notLoggedIn(request: HttpRequest):
     return JsonResponse({"ok":False,"message": "You are not logged in", "data":[]})

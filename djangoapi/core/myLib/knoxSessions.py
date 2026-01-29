@@ -1,7 +1,7 @@
 from django.db import connection
 
-from pgOperations import pgOperations as pg
-from pgOperations.pgOperations import WhereClause
+from core.myLib import pgOperations as pg
+from core.myLib.pgOperations import WhereClause
 
 from djangoapi import settings
 
