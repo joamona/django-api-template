@@ -39,7 +39,7 @@ class IsValidToken(APIView):
         os=knoxSessions.getOpenedKnoxSessions(user.username)
         return Response({
             'messages':{'success':'Identification success'},
-            "politica_acceso":{"acccess":"Allowed."},
+            "access_policy":{"acccess":"Allowed."},
             'data': [{"detail": "Valid token.", "username": user.username, "user": user.id,
                     "groups":groups, "opened_sessions":os}]})
 

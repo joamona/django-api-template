@@ -70,4 +70,4 @@ class EmptySerializer(serializers.Serializer):
     pass
 
 class LogoutAllUserSessionsSerializer(serializers.Serializer):
-    username = serializers.CharField(help_text="El nombre de usuario. Si no es admin, el toquen de autorización debe ser suyo")
+    username = serializers.CharField(help_text="The username. If the user does not belong to the group admin, the token must be yours")
