@@ -92,11 +92,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-#para el CORS
+
+#para el CORS. Solo el navegador. Las APPs no tienen CORS
 if DEBUG:
-    #CORS_ALLOW_ALL_ORIGINS = True   <-- Not allowed any more for chrome
-    #You need to specify the allowed origins
-    CORS_ALLOWED_ORIGINS=['http://localhost:4200']
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ORIGINS = [WEB_URL]
 
 #necressary to allow the cookies to be sent in the header of the request
 CORS_ALLOW_CREDENTIALS = True
@@ -119,7 +120,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'djangoapi.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
