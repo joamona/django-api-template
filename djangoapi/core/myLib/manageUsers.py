@@ -1,6 +1,15 @@
 from django.contrib.auth.models import User
 from typing import Union, List
 
+
+def createUser(username:str, email:str, password: str, is_active: bool=True, is_superuser:bool=False)->User:
+    u=User(username=username, email=email)
+    u.set_password(password)
+    u.is_active=is_active
+    u.is_superuser=is_superuser
+    u.save()
+    return u
+
 def getUserGroups(user: User):
     """
     Gets a lists with the user groups that the user belongs. The user is an object of the

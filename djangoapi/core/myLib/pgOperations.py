@@ -151,6 +151,14 @@ class PgDatabases():
             pgConnect: PgConnect instance.
         """
         self.pgConnect=pgConnect
+        self.pgConnect.conn.autocommit=True #necesario para que cree y borre bbdd
+
+    def databaseExists(self, databaseName:str)->bool:
+        cons=f"SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = '{databaseName}')";
+        self.pgConnect.cursor.execute(cons)
+        r=self.pgConnect.cursor.fetchall()
+        #print('database exists',r)
+        return r[0][0] #ya es True o False
 
     def createDatabase(self, databaseName: str, addPostgisExtension: bool = True, 
             closeNewConnection:bool = False) -> PgConnect:
@@ -168,9 +176,7 @@ class PgDatabases():
         Returns:
             A PgConnect instance to manage the newly created database.
         """
-        self.pgConnect.conn.autocommit = True
         self.pgConnect.cursor.execute('create database ' + databaseName)
-        self.pgConnect.conn.autocommit = False
         pgConnect: PgConnect=PgConnect(database=databaseName, user=self.pgConnect.user, 
             password=self.pgConnect.password, host= self.pgConnect.host, 
             port=self.pgConnect.port)
@@ -189,9 +195,7 @@ class PgDatabases():
         
             >>> pgdb.dropDatabase("pgoperationstest")
         """
-        self.pgConnect.conn.autocommit=True
         self.pgConnect.cursor.execute('drop database ' + databaseName)
-        self.pgConnect.conn.autocommit=False
 
 class FieldsAndValuesBase():
     """Class to store the information that

@@ -9,8 +9,8 @@ urlpatterns = [
     path("hello_world/", views.HelloWord.as_view(),name="hello_world"),
     path('', include(router.urls)),
     path('not_loggedin/', views.notLoggedIn, name="not_loggedin"),
-    path('login/', views.LoginView.as_view(),name="login"),
-    path('logout/', views.LogoutView.as_view(),name="login"),
+    path('login/', views.LoginView.as_view(),name="core_login"),
+    path('logout/', views.LogoutView.as_view(),name="core_logout"),
 
     #knox operations with token authentication in the header
     #key: Authorization

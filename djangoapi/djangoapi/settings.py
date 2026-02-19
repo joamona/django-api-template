@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
-import os
+import os, sys
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     #required by geodjango
     'django.contrib.gis',
     #para el CORS
@@ -124,12 +125,22 @@ WSGI_APPLICATION = 'djangoapi.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+#Sirve para crear la base de datos de test para ejecutar los test
+#con el módulo create_db_test.py
+#python create_db_test.py
+MODE_TEST = os.getenv("MODE_TEST", 'False').lower() in ('true', '1', 't')
+if MODE_TEST:
+    DATABASE_NAME = 'test_'+ os.getenv('POSTGRES_DB')
+    print(f'Base de datos en modo test: {DATABASE_NAME}')
+else:
+    DATABASE_NAME = os.getenv('POSTGRES_DB')
+
 DATABASES = {
     'default': {
         #ENGINE': 'django.db.backends.postgresql_psycopg2',
         #required by geodjango
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': os.getenv('POSTGRES_DB'),
+        'NAME': DATABASE_NAME,
         'USER': os.getenv('POSTGRES_USER'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
         'HOST': os.getenv('POSTGRES_HOST'),
@@ -218,3 +229,19 @@ EMAIL_UPV = os.getenv('EMAIL_UPV')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_FROM = os.getenv('EMAIL_FROM')
 ADMINS=[(os.getenv('DJANGO_EMAIL_FOR_ERRORS_USER_NAME'), os.getenv('DJANGO_EMAIL_FOR_ERRORS_EMAIL'))]
+
+
+#Para realizar los tests automáticos
+#Comando:
+#   python manage.py test --keepdb
+#
+#--keepdb: Le dice a Django: "No intentes borrar la base de datos al terminar".
+TESTING = 'test' in sys.argv
+
+if TESTING:
+     DATABASES['default']['NAME'] = 'test_'+ os.getenv('POSTGRES_DB')
+     # Esto es la clave: evita que Django intente crear la BD
+     DATABASES['default']['TEST'] = {
+         'NAME': 'test_'+ os.getenv('POSTGRES_DB'),
+         'CREATE_DB': False, #no intenta crear la bbdd al empezar
+     }
