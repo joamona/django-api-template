@@ -16,16 +16,20 @@ def insert():
     cur=conn.cursor()
     cons="""
         INSERT INTO d.buildings 
-            (description, area)
+            (description, area,geom)
         VALUES
-            (%s,%s)
+            (%s,%s,
+            st_geometryFromText(%s,25830))
+        RETURNING id
         """
-    cur.execute(cons,['My first building', 100])
+    cur.execute(cons,
+                ['My first building',
+                 100,
+                 'POLYGON((0 0, 100 0, 100 100, 0 100, 0 0))'
+                 ])
     conn.commit()
     cur.close()
     conn.close()
     print("Inserted")
-
-
 
 
