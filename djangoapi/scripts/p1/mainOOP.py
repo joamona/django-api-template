@@ -1,9 +1,6 @@
 import sys
+from buildings.buildingsOOP import BuildingsOOP
 
-from buildings.insert import insert as insert_building
-from buildings.select import select as select_building
-from buildings.update import update as update_building
-from buildings.delete import delete as delete_building
 
 def main():
     # sys.argv[0] es siempre el nombre del archivo (main.py)
@@ -25,16 +22,17 @@ def main():
         sys.exit(0)
 
     if tableName == "buildings":
+        b=BuildingsOOP()
         if functionName=="insert":
-            insert_building()
+            b.insert()
         elif functionName=="select":
-            select_building()
+            b.select()
         elif functionName=="selectAsDict":
-            select_building(asDict=True)
+            b.select(asDict=True)
         elif functionName=="update":
-            update_building()
+            pass
         elif functionName=="delete":
-            delete_building()
+            pass
     elif tableName=="trees":
         if functionName=="insert":
             pass

@@ -1,12 +1,20 @@
 from myLib.connect import connect
 from psycopg.rows import dict_row
 
-def select():
+
+def select(asDict=False):
     conn=connect()
-    cur=conn.cursor(row_factory=dict_row)
+
+    if asDict:
+        #The rows are dicts
+        cur=conn.cursor(row_factory=dict_row)
+    else:
+        #Te rows are tuples
+        cur=conn.cursor()
+
     cons="""
         SELECT 
-            description, area,st_astext(geom)
+            id, description, area, st_astext(geom)
         FROM 
             d.buildings 
         WHERE
