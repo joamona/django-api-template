@@ -1,7 +1,9 @@
 import psycopg
+from psycopg.rows import dict_row
+
 from myLib import p1Settings as settings
 class Db:
-    def __init__(self, autoCommit=True, autoPrintResults=True):
+    def __init__(self, autoCommit=True, autoPrintResults=True, getRowsAsDicts=True):
         """Create a connection to the database
         autoCommit: if True, the connection will commit the
         changes automatically. If False, the connection will
@@ -10,30 +12,41 @@ class Db:
         results of the query automatically. If False, the
         results will not be printed
         """
+        self.getRowsAsDicts=getRowsAsDicts
         self.conn = psycopg.connect(
-        dbname=settings.POSTGRES_DB,
-        user=settings.POSTGRES_USER,
-        password=settings.POSTGRES_PASSWORD,
-        host=settings.POSTGRES_HOST,
-        port=settings.POSTGRES_PORT
+            dbname=settings.POSTGRES_DB,
+            user=settings.POSTGRES_USER,
+            password=settings.POSTGRES_PASSWORD,
+            host=settings.POSTGRES_HOST,
+            port=settings.POSTGRES_PORT
         )
         self.autoPrintResults = autoPrintResults
         self.autoCommit = autoCommit
-        self.cursor = self.conn.cursor()
+
+        if self.getRowsAsDicts:
+            self.cursor = self.conn.cursor(row_factory=dict_row)
+        else:
+            self.cursor = self.conn.cursor()
+        
         self.result = None
         print("Connected to database")
 
     def query(self, query, params=None):
-        """Execute a query and return the results
-        eg. query("SELECT * FROM table WHERE area > %s and owner
-        like %s", [100], [’%Smith%’]))
+        """
+        Execute a query and return the results
+            eg. query("SELECT * FROM table WHERE area > %s and owner
+                like %s", [100], [’%Smith%’]))
+        
         query: the query to execute. Use %s as a placeholder for
+        
         parameters. Eg. "SELECT * FROM table WHERE area > %s
-        and owner like %s"
+                and owner like %s"
+            
         params: the parameters to pass to the query in a list.
-        Eg. [100, ’%Smith%’]
+                Eg. [100, ’%Smith%’]
+        
         return: the results of the query in a list. Eg. [(1, ’
-        Smith’, 200), (2, ’Smith’, 300)]
+                Smith’, 200), (2, ’Smith’, 300)]
         """
         self.cursor.execute(query, params)
         if self.autoCommit:

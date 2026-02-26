@@ -1,15 +1,5 @@
-import psycopg
-from myLib import p1Settings
-def connect():
-    conn= psycopg.connect(
-        dbname=p1Settings.POSTGRES_DB,
-        user=p1Settings.POSTGRES_USER,
-        password=p1Settings.POSTGRES_PASSWORD,
-        host=p1Settings.POSTGRES_HOST,
-        port=p1Settings.POSTGRES_PORT
-        )
-    print("Connected")
-    return conn
+from myLib.connect import connect
+from myLib.p1Settings import EPSG_CODE
 
 def insert():
     conn=connect()
@@ -19,15 +9,20 @@ def insert():
             (description, area,geom)
         VALUES
             (%s,%s,
-            st_geometryFromText(%s,25830))
+            st_geometryFromText(%s,%s))
         RETURNING id
         """
     cur.execute(cons,
                 ['My first building',
                  100,
-                 'POLYGON((0 0, 100 0, 100 100, 0 100, 0 0))'
+                 'POLYGON((0 0, 100 0, 100 100, 0 100, 0 0))',
+                 EPSG_CODE
                  ])
     conn.commit()
+    l=cur.fetchall()
+    #print(cur.fetchall()[0][0]) <-- ERROR. YOU ONLY CAN FECTH THE RESULTS ONCE
+    print(l)
+    print(l[0][0])
     cur.close()
     conn.close()
     print("Inserted")
