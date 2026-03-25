@@ -35,8 +35,7 @@ def update(d:dict):
     r=cur.fetchall()
 
     if len(r)>0:
-        pass
-        #return {'ok': False, 'message':'The geometry interior intersects with the following geometries id', 'data': r}
+        return {'ok': False, 'message':'The geometry interior intersects with the following geometries id', 'data': r}
 
     #create the geometry with geos
     f=Buildings.objects.filter(id=d['id'])
