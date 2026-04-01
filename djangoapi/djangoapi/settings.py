@@ -11,12 +11,16 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
-import os
+import os, sys
+from datetime import timedelta
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+DJANGO_SUPERUSER_USERNAME=(os.getenv('DJANGO_SUPERUSER_USERNAME'))
 BASE_DIR = Path(__file__).resolve().parent.parent
 EPSG_FOR_GEOMETRIES=int(os.getenv('EPSG_FOR_GEOMETRIES',4326))
 ST_SNAP_PRECISION=float(os.getenv('ST_SNAP_PRECISION',0.0001))
 MAX_NUMBER_OF_RETRIEVED_ROWS=int(os.getenv('MAX_NUMBER_OF_RETRIEVED_ROWS',1000))
+DJANGO_KNOX_AUTOMATICALLY_REMOVE_TOKENS=os.getenv("DJANGO_KNOX_AUTOMATICALLY_REMOVE_TOKENS", "True").lower() in ('true', '1', 't')
 
 DJANGO_SUPERUSER_EMAIL=os.getenv('DJANGO_SUPERUSER_EMAIL')
 FORCE_SCRIPT_NAME=os.getenv('FORCE_SCRIPT_NAME')
@@ -58,12 +62,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     #required by geodjango
     'django.contrib.gis',
     #para el CORS
     'corsheaders',
     'rest_framework',
     'rest_framework_gis',
+    #https://jazzband.github.io/django-rest-knox/
+    'knox',
     'django_filters',
     #'drf_yasg',
     #add all your django apps here
@@ -73,6 +80,8 @@ INSTALLED_APPS = [
     'codelist',
     'buildings',
     'flowers',
+    'accidentes',
+    'buildings2'
 ]
 
 MIDDLEWARE = [
@@ -85,11 +94,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-#para el CORS
+
+#para el CORS. Solo el navegador. Las APPs no tienen CORS
 if DEBUG:
-    #CORS_ALLOW_ALL_ORIGINS = True   <-- Not allowed any more for chrome
-    #You need to specify the allowed origins
-    CORS_ALLOWED_ORIGINS=['http://localhost:4200']
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ORIGINS = [WEB_URL]
 
 #necressary to allow the cookies to be sent in the header of the request
 CORS_ALLOW_CREDENTIALS = True
@@ -113,16 +123,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'djangoapi.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+
+#Sirve para crear la base de datos de test para ejecutar los test
+#con el módulo create_db_test.py
+#python create_db_test.py
+MODE_TEST = os.getenv("MODE_TEST", 'False').lower() in ('true', '1', 't')
+if MODE_TEST:
+    DATABASE_NAME = 'test_'+ os.getenv('POSTGRES_DB')
+    print(f'Base de datos en modo test: {DATABASE_NAME}')
+else:
+    DATABASE_NAME = os.getenv('POSTGRES_DB')
 
 DATABASES = {
     'default': {
         #ENGINE': 'django.db.backends.postgresql_psycopg2',
         #required by geodjango
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': os.getenv('POSTGRES_DB'),
+        'NAME': DATABASE_NAME,
         'USER': os.getenv('POSTGRES_USER'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
         'HOST': os.getenv('POSTGRES_HOST'),
@@ -189,6 +208,17 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': ('knox.auth.TokenAuthentication',),
+    'EXCEPTION_HANDLER': 'core.myLib.drf.custom_exception_handler',
+}
+
+REST_KNOX = {
+    #'USER_SERIALIZER':'accounts.serializers.UserSerializer',
+    'TOKEN_TTL': timedelta(days=int(os.getenv("DJANGO_SESSION_EXPIRY_DAYS", 1))),
+    'TOKEN_LIMIT_PER_USER':int(os.getenv("TOKEN_LIMIT_PER_USER")),
 }
 
 #Email
@@ -200,3 +230,19 @@ EMAIL_UPV = os.getenv('EMAIL_UPV')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_FROM = os.getenv('EMAIL_FROM')
 ADMINS=[(os.getenv('DJANGO_EMAIL_FOR_ERRORS_USER_NAME'), os.getenv('DJANGO_EMAIL_FOR_ERRORS_EMAIL'))]
+
+
+#Para realizar los tests automáticos
+#Comando:
+#   python manage.py test --keepdb
+#
+#--keepdb: Le dice a Django: "No intentes borrar la base de datos al terminar".
+TESTING = 'test' in sys.argv
+
+if TESTING:
+     DATABASES['default']['NAME'] = 'test_'+ os.getenv('POSTGRES_DB')
+     # Esto es la clave: evita que Django intente crear la BD
+     DATABASES['default']['TEST'] = {
+         'NAME': 'test_'+ os.getenv('POSTGRES_DB'),
+         'CREATE_DB': False, #no intenta crear la bbdd al empezar
+     }

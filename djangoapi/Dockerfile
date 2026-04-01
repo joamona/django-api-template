@@ -1,38 +1,40 @@
-# pull official base image
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
-# set work directory
 WORKDIR /usr/src/app
 
-# set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# install psycopg2 dependencies
-#pango es una dependencia de weasyprint
-RUN apk update && apk add postgresql-dev gcc musl-dev libpq-dev wget pango  \
-     gdal-dev geos-dev proj-dev gcc musl-dev \
-     libffi-dev python3-dev zlib-dev jpeg-dev freetype-dev
+# Instalamos dependencias de sistema
+RUN apk update && apk add --no-cache \
+    postgresql-dev \
+    gcc \
+    # Dependencias esenciales para GeoDjango (GDAL, GEOS, PROJ)
+    gdal-dev \
+    geos-dev \
+    proj-dev \
+    proj-util \
+    # Otras dependencias de compilación y utilidades
+    musl-dev \
+    libffi-dev \
+    pango-dev \
+    zlib-dev \
+    jpeg-dev \
+    freetype-dev \
+    # Para que el shell de entrypoint funcione correctamente
+    bash
 
-RUN apk add --update --no-cache --virtual .tmp-build-deps \
-     libc-dev linux-headers 
+# Variables de entorno para que Django encuentre las librerías GIS en Alpine
+# Estas rutas son las estándar en Alpine Linux
+ENV GDAL_LIBRARY_PATH=/usr/lib/libgdal.so
+ENV GEOS_LIBRARY_PATH=/usr/lib/libgeos_c.so
 
-# install dependencies
 RUN pip install --upgrade pip
-
-
 COPY ./requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip3 install -r requirements.txt
-
-
-# copy project
 COPY . .
-#RUN chmod +x migrate.sh
+RUN chmod +x entrypoint.sh
 RUN chmod +x initdb.sh
 
-#RUN echo "Collect static files"
-#RUN python manage.py collectstatic --noinput
-
-#ESTO NO SE PUEDE HACER AQUÍ, HAY QUE ENTRAR EN EN MODO INTERACTIVO Y HACERLO A MANO
-#CUANDO CREAS DE NUEVO IMÁGENES Y CONTENEDORES, LA BBDD SE CONSERVA
+ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

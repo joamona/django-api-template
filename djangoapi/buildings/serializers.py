@@ -1,20 +1,20 @@
 
 from rest_framework import serializers
 
-from core.myLib.geoModelSerializer import GeoModelSerializer
+from core.myLib.geoModelSerializer import GeomodelPolygonSerializer
 from .models import Buildings, Owners, BuildingsOwners
 
-class BuildingsSerializer(GeoModelSerializer):
+class BuildingsSerializer(GeomodelPolygonSerializer):
     check_geometry_is_valid = True #if true ºit will check if the geometry is valid: not self-intersecting and closed
     matrix9IM = 'T********' #matrix 9IM for the relation of the geometries: 'T********' = interiors intersects
-    check_st_relation = True #if the new geometry must be checked against 
+    check_st_relation = False #if the new geometry must be checked against 
             #the other geometries in the table according to the matrix9IM. If any geometry
             #has the relation with the new geometry, the new geometry is not saved
             #an a validation error is raised, with the ids of the geometries that have the relation
 
     class Meta:
         model = Buildings
-        fields = GeoModelSerializer.Meta.fields + ['description', 'area'] # The serializer 
+        fields = GeomodelPolygonSerializer.Meta.fields + ['description'] # The serializer 
                     #assumes that the model has the geometry field \textit{geom}. 
                     # add here the rest of the fields of the model that you want to serialize
                     # and that are not in the GeoModelSerializer

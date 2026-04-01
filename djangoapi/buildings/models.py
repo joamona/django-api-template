@@ -10,6 +10,7 @@ class Buildings(models.Model):
     #id = models.AutoField(primary_key=True) #Not necessary. It is created by default
     description = models.CharField(max_length=100, blank=True, null=True)
     area = models.FloatField(blank=True, null=True)
+    perimeter = models.FloatField(blank=True, null=True)
     geom = gis_models.PolygonField(srid=int(EPSG_FOR_GEOMETRIES), blank=True, null=True)
 #    def __str__(self):
 #        return str(self.id)
