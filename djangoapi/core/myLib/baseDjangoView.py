@@ -35,7 +35,7 @@ class BaseDjangoView(View):
                 POST /buildings_view/delete/<id>/
 
         You can add more methods to this class by redefining the get and post methods. To add
-        the newgetmethod and newpostmethod methods, you can do the following:
+        the new get method and new post method methods, you can do the following:
 
             def get(self, request, *args, **kwargs):
                 action=kwargs.get('action')
