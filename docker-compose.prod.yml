@@ -37,9 +37,13 @@ services:
     volumes:
       - ./pgadmin4/data:/var/lib/pgadmin
       - ./pgadmin4/servers/servers.json:/pgadmin4/servers.json
+      # Volume to access and put database backup files (.backup):
+      - ./pgadmin4/backup:/var/lib/pgadmin/storage
+
     ports:
       - 127.0.0.1:${GEOMATICAUPV_DOCKER_PGADMIN_FORWARDED_PORT}:80
-    restart: unless-stopped
+    restart: unless-stopped.
+    user: "root"
     depends_on:
       postgis:
         condition: service_healthy

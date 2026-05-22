@@ -32,12 +32,20 @@ services:
     image: dpage/pgadmin4:8.3
     env_file:
       - .env.dev
+
+    environment:
+      # Forzamos a pgAdmin a usar una ruta simple como directorio de almacenamiento principal
+      - PGADMIN_DEFAULT_STORAGE_DIR=/var/lib/pgadmin/storage
     volumes:
       - ./pgadmin4/data:/var/lib/pgadmin
       - ./pgadmin4/servers/servers.json:/pgadmin4/servers.json
+      # ESTE ES TU NUEVO VOLUMEN:
+      - ./pgadmin4/backup:/var/lib/pgadmin/storage
+
     ports:
       - 127.0.0.1:${DEVELOP_DOCKER_PGADMIN_FORWARDED_PORT}:80
     restart: "no"
+    user: "root"
     depends_on:
       postgis:
         condition: service_healthy
