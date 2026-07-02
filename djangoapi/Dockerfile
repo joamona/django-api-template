@@ -34,7 +34,9 @@ COPY ./requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-RUN chmod +x entrypoint.sh
-RUN chmod +x initdb.sh
+#Lo de abajo no tiene efecto, ya que al montar el volumen se sobreescriben
+#los permisos
+#RUN chmod +x entrypoint.sh
+#RUN chmod +x initdb.sh
 
-ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+ENTRYPOINT ["sh", "/usr/src/app/entrypoint.sh"]
