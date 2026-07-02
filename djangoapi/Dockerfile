@@ -37,4 +37,4 @@ COPY . .
 RUN chmod +x entrypoint.sh
 RUN chmod +x initdb.sh
 
-ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+ENTRYPOINT ["sh", "/usr/src/app/entrypoint.sh"]

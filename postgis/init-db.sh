@@ -2,11 +2,11 @@
 set -e
 
 # Wait for PostgreSQL to be ready
-until pg_isready; do
-  echo ${POSTGRES_USER}
-  echo "Waiting for PostgreSQL to start..."
-  sleep 2
-done
+# until pg_isready; do
+#   echo ${POSTGRES_USER}
+#   echo "Waiting for PostgreSQL to start..."
+#   sleep 2
+# done
 
 echo "PostgreSQL is ready. Starting restore."
 
@@ -28,7 +28,7 @@ echo "PostgreSQL is ready. Starting restore."
 #Create a custom backup file and put it here.
 #Uncomment the following line and change the filename to restore
 
-#pg_restore -v -U ${POSTGRES_USER} -d ${POSTGRES_DB} /usr/local/app/disati.backup
-#echo "Database restore completed."
+pg_restore -v -U ${POSTGRES_USER} -d ${POSTGRES_DB} /usr/local/app/disati.backup
+echo "Database restore completed."
 
 echo "Database cluster created."
